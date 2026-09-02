@@ -49,12 +49,15 @@ function requireApiKey(settings: ProfileConfig): string {
 
 /**
  * Typed client for the generated OpenAPI schema. The spec paths already
- * include /api/v1, so the base URL is the deployment origin.
+ * include /api/v1, so the base URL is the deployment origin. A missing key
+ * is a usage error before any request is made: the API has no anonymous
+ * surface (outside local dev, which the CLI should not target silently).
  */
 export function getClient(settings: ProfileConfig) {
+	const apiKey = requireApiKey(settings);
 	return createClient<paths>({
 		baseUrl: baseUrl(settings),
-		headers: settings.api_key ? { Authorization: `Bearer ${requireApiKey(settings)}` } : {},
+		headers: { Authorization: `Bearer ${apiKey}` },
 	});
 }
 

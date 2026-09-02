@@ -76,6 +76,8 @@ describe("CLI write paths against a mock API", () => {
 		const run = await runCaptured([
 			"--url",
 			BASE,
+			"--api-key",
+			"aik_test",
 			"--mailbox",
 			"m@example.com",
 			"emails",
@@ -92,6 +94,8 @@ describe("CLI write paths against a mock API", () => {
 		const run = await runCaptured([
 			"--url",
 			BASE,
+			"--api-key",
+			"aik_test",
 			"--mailbox",
 			"m@example.com",
 			"emails",
@@ -112,10 +116,37 @@ describe("CLI write paths against a mock API", () => {
 		expect(envelope.error.code).toBe("confirmation_required");
 	});
 
+	test("missing API key is a usage error before any request", async () => {
+		let requests = 0;
+		const counting = Bun.serve({
+			port: PORT + 1,
+			fetch: () => {
+				requests += 1;
+				return new Response(null, { status: 204 });
+			},
+		});
+		const run = await runCaptured([
+			"--url",
+			`http://localhost:${PORT + 1}`,
+			"--mailbox",
+			"m@example.com",
+			"mailboxes",
+			"list",
+		]);
+		counting.stop(true);
+		expect(run.code).toBe(2);
+		const envelope = JSON.parse(run.stderr) as { error: { code: string; message: string } };
+		expect(envelope.error.code).toBe("usage");
+		expect(envelope.error.message).toContain("No API key configured");
+		expect(requests).toBe(0);
+	});
+
 	test("drafts update reports the new id from the recreated draft", async () => {
 		const run = await runCaptured([
 			"--url",
 			BASE,
+			"--api-key",
+			"aik_test",
 			"--mailbox",
 			"m@example.com",
 			"drafts",
