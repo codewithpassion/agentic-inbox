@@ -32,6 +32,7 @@ export const folderRoutes = new Hono<MailboxContext>()
 					description: "Folders",
 					content: { "application/json": { schema: resolver(z.array(FolderSchema)) } },
 				},
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
 		async (c) => c.json(await c.var.mailboxStub.getFolders()),
@@ -43,6 +44,7 @@ export const folderRoutes = new Hono<MailboxContext>()
 			responses: {
 				201: { description: "Created folder", content: { "application/json": { schema: resolver(FolderSchema) } } },
 				400: { description: "Invalid name", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 				409: { description: "Folder already exists", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
@@ -79,6 +81,7 @@ export const folderRoutes = new Hono<MailboxContext>()
 			responses: {
 				204: { description: "Deleted" },
 				400: { description: "Folder missing or protected", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
 		validator("param", FOLDER_ID_PARAM, validationErrorHook),

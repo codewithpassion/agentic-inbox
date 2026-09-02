@@ -8,7 +8,7 @@ import { resolver, validator } from "hono-openapi/zod";
 import { z } from "zod";
 import { validationErrorHook } from "../lib/errors";
 import type { MailboxContext } from "../lib/mailbox";
-import { EmailListResponseSchema, boolParam, limitParam, pageParam } from "../lib/schemas";
+import { ApiErrorSchema, EmailListResponseSchema, boolParam, limitParam, pageParam } from "../lib/schemas";
 import type { MailboxSearchStub } from "../lib/tools";
 
 const SearchQuery = z.object({
@@ -36,6 +36,7 @@ export const searchRoutes = new Hono<MailboxContext>().get(
 				description: "Paginated search results",
 				content: { "application/json": { schema: resolver(EmailListResponseSchema) } },
 			},
+			404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 		},
 	}),
 	validator("query", SearchQuery, validationErrorHook),

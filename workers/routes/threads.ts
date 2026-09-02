@@ -9,7 +9,7 @@ import { z } from "zod";
 import { validationErrorHook } from "../lib/errors";
 import { getMailboxStub, type MailboxThreadReaderStub } from "../lib/email-helpers";
 import type { MailboxContext } from "../lib/mailbox";
-import { EmailFullSchema, StatusResponseSchema } from "../lib/schemas";
+import { ApiErrorSchema, EmailFullSchema, StatusResponseSchema } from "../lib/schemas";
 import type { EmailFull } from "../lib/schemas";
 
 const THREAD_ID_PARAM = z.object({ mailboxId: z.string(), threadId: z.string() });
@@ -24,6 +24,7 @@ export const threadRoutes = new Hono<MailboxContext>()
 					description: "Thread messages",
 					content: { "application/json": { schema: resolver(z.array(EmailFullSchema)) } },
 				},
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
 		validator("param", THREAD_ID_PARAM, validationErrorHook),
