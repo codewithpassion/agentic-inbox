@@ -32,11 +32,22 @@ import { Folders } from "../../shared/folders";
 import type { Env } from "../types";
 
 // ── Type casts for DO methods not on the base stub type ────────────
-type MailboxSearchStub = {
-	searchEmails: (options: {
-		query: string;
-		folder?: string;
-	}) => Promise<unknown>;
+export type MailboxSearchFilters = {
+	query: string;
+	folder?: string;
+	from?: string;
+	to?: string;
+	subject?: string;
+	date_start?: string;
+	date_end?: string;
+	is_read?: boolean;
+	is_starred?: boolean;
+	has_attachment?: boolean;
+};
+
+export type MailboxSearchStub = {
+	searchEmails: (options: MailboxSearchFilters & { page?: number; limit?: number }) => Promise<unknown>;
+	countSearchResults: (options: MailboxSearchFilters) => Promise<number>;
 };
 
 type RateLimitStub = {

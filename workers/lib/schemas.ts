@@ -93,3 +93,104 @@ export const SendEmailResponseSchema = z.object({
 	id: z.string(),
 	status: z.string(),
 });
+
+// ── API contract schemas (OpenAPI descriptions) ────────────────────
+//
+// These describe the public REST surface for GET /api/v1/openapi.json and
+// validate request inputs on the routes in workers/routes/*. They are not
+// the storage schemas (see workers/db/schema.ts).
+
+export const ApiErrorSchema = z.object({
+	error: z.object({
+		code: z.string(),
+		message: z.string(),
+	}),
+});
+
+export const MailboxSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	email: z.string().optional(),
+	settings: z.record(z.any()).optional(),
+});
+
+export const AttachmentSchema = z.object({
+	id: z.string(),
+	filename: z.string(),
+	mimetype: z.string(),
+	size: z.number(),
+	content_id: z.string().nullable().optional(),
+	disposition: z.string().nullable().optional(),
+});
+
+export const EmailSummarySchema = z.object({
+	id: z.string(),
+	subject: z.string().nullable().optional(),
+	sender: z.string().nullable().optional(),
+	recipient: z.string().nullable().optional(),
+	cc: z.string().nullable().optional(),
+	bcc: z.string().nullable().optional(),
+	date: z.string().nullable().optional(),
+	read: z.boolean(),
+	starred: z.boolean(),
+	in_reply_to: z.string().nullable().optional(),
+	email_references: z.string().nullable().optional(),
+	thread_id: z.string().nullable().optional(),
+	folder_id: z.string().nullable().optional(),
+	snippet: z.string().nullable().optional(),
+	// Thread aggregate fields (only present in threaded list view)
+	thread_count: z.number().optional(),
+	thread_unread_count: z.number().optional(),
+	participants: z.string().optional(),
+	needs_reply: z.boolean().optional(),
+	has_draft: z.boolean().optional(),
+});
+
+export const EmailFullSchema = EmailSummarySchema.extend({
+	body: z.string().nullable().optional(),
+	message_id: z.string().nullable().optional(),
+	raw_headers: z.string().nullable().optional(),
+	attachments: z.array(AttachmentSchema).optional(),
+});
+
+export const EmailListResponseSchema = z.object({
+	emails: z.array(EmailSummarySchema),
+	totalCount: z.number(),
+});
+
+export const FolderSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	unreadCount: z.number(),
+});
+
+export const DraftResponseSchema = z.object({
+	id: z.string(),
+	status: z.string(),
+	subject: z.string(),
+	recipient: z.string(),
+	date: z.string(),
+});
+
+export const SendAcceptedResponseSchema = z.object({
+	id: z.string(),
+	status: z.string(),
+});
+
+export const StatusResponseSchema = z.object({
+	status: z.string(),
+});
+
+// ── Query parameter helpers ────────────────────────────────────────
+
+/** Optional boolean expressed as "true"/"false"/"1"/"0" in the query string. */
+export const boolParam = z
+	.enum(["true", "false", "1", "0"])
+	.optional()
+	.transform((v) => (v === undefined ? undefined : v === "true" || v === "1"));
+
+/** Pagination page, coerced and bounded (>= 1). */
+export const pageParam = z.coerce.number().int().min(1).optional();
+
+/** Pagination limit, coerced and bounded (1..100, matching the DO caps). */
+export const limitParam = z.coerce.number().int().min(1).max(100).optional();

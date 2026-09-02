@@ -11,11 +11,23 @@ export class ApiError extends Error {
 	body: Record<string, unknown>;
 
 	constructor(status: number, body: Record<string, unknown>) {
-		super((body.error as string) || `Request failed: ${status}`);
+		// The API returns { error: { code, message } }; older deployments sent
+		// { error: "message" }. Handle both so a stale backend still shows text.
+		super(readErrorMessage(body, status));
 		this.name = "ApiError";
 		this.status = status;
 		this.body = body;
 	}
+}
+
+function readErrorMessage(body: Record<string, unknown>, status: number): string {
+	const error = body.error;
+	if (typeof error === "string" && error) return error;
+	if (error && typeof error === "object" && "message" in error) {
+		const message = (error as { message?: unknown }).message;
+		if (typeof message === "string" && message) return message;
+	}
+	return `Request failed: ${status}`;
 }
 
 async function request<T>(

@@ -9,7 +9,7 @@
  * threading, HTML utilities, and tool-logic (getFullEmail / getFullThread).
  */
 import type { MailboxDO } from "../durableObject";
-import type { EmailFull } from "./schemas";
+import type { EmailFull, EmailMetadata } from "./schemas";
 import { Folders } from "../../shared/folders";
 import type { Env } from "../types";
 import { formatQuotedDate } from "../../shared/dates";
@@ -221,8 +221,17 @@ export function buildQuotedReplyBlock(original: {
 
 // ── Tool Logic (getFullEmail / getFullThread) ──────────────────────
 
-type MailboxThreadReaderStub = {
+export type MailboxThreadReaderStub = {
 	getThreadEmails: (threadId: string) => Promise<EmailFull[]>;
+};
+
+/**
+ * Threaded listing returns SQL rows whose RPC signature defeats the
+ * generated DurableObjectStub types; these routes narrow through this stub.
+ */
+export type MailboxThreadedListReaderStub = {
+	getThreadedEmails: (options: { folder: string; page?: number; limit?: number }) => Promise<EmailMetadata[]>;
+	countThreadedEmails: (folder: string) => Promise<number>;
 };
 
 /**
