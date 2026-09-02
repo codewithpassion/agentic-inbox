@@ -37,7 +37,11 @@ export const mailboxRoutes = new Hono<MailboxContext>()
 		}),
 		async (c) => {
 			const allMailboxes = await listMailboxes(c.env.BUCKET);
-			return c.json(allMailboxes.map((m) => ({ ...m, name: m.id })));
+			// Scoped API keys only see the mailboxes in their scope (D4).
+			const principal = c.get("principal");
+			const scope = principal.kind === "api_key" ? principal.mailboxes : null;
+			const visible = scope ? allMailboxes.filter((m) => scope.includes(m.id)) : allMailboxes;
+			return c.json(visible.map((m) => ({ ...m, name: m.id })));
 		},
 	)
 	.post(

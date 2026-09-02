@@ -25,6 +25,13 @@ export const requireMailbox = createMiddleware<MailboxContext>(async (c, next) =
 	if (!rawId) return c.json({ error: "Mailbox ID required" }, 400);
 	const mailboxId = decodeURIComponent(rawId);
 
+	// API keys restricted to specific mailboxes get a 404 (not 403) so they
+	// cannot enumerate mailboxes outside their scope (decision D4).
+	const principal = c.get("principal");
+	if (principal.kind === "api_key" && principal.mailboxes && !principal.mailboxes.includes(mailboxId)) {
+		return c.json({ error: { code: "not_found", message: "Mailbox not found" } }, 404);
+	}
+
 	// Verify mailbox exists
 	const key = `mailboxes/${mailboxId}.json`;
 	const obj = await c.env.BUCKET.head(key);
@@ -38,6 +45,6 @@ export const requireMailbox = createMiddleware<MailboxContext>(async (c, next) =
 	const stub = ns.get(id);
 
 	c.set("mailboxStub", stub);
-	
+
 	await next();
 });

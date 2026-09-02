@@ -343,6 +343,8 @@ export async function toolUpdateDraft(
 			subject: params.subject ?? oldDraft.subject,
 			sender: mailboxId.toLowerCase(),
 			recipient: (params.to ?? oldDraft.recipient).toLowerCase(),
+			cc: oldDraft.cc ?? null,
+			bcc: oldDraft.bcc ?? null,
 			date: new Date().toISOString(),
 			body: verifiedBody,
 			in_reply_to: oldDraft.in_reply_to || null,
@@ -401,7 +403,7 @@ export async function toolDiscardDraft(
 	env: Env,
 	mailboxId: string,
 	draftId: string,
-) {
+): Promise<{ status: "discarded"; draftId: string } | { error: string }> {
 	const stub = getMailboxStub(env, mailboxId);
 	const email = (await stub.getEmail(draftId)) as { folder_id?: string } | null;
 	if (!email) {

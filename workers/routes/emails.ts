@@ -11,6 +11,7 @@ import type { MailboxContext } from "../lib/mailbox";
 import type { MailboxThreadedListReaderStub } from "../lib/email-helpers";
 import {
 	ApiErrorSchema,
+	DraftResponseSchema,
 	EmailFullSchema,
 	EmailListResponseSchema,
 	SendEmailRequestSchema,
@@ -18,7 +19,7 @@ import {
 	limitParam,
 	pageParam,
 } from "../lib/schemas";
-import { toolDeleteEmail, toolMarkEmailRead, toolMoveEmail, toolSendEmail, type ToolErrorCode } from "../lib/tools";
+import { toolDeleteEmail, toolDraftReply, toolMarkEmailRead, toolMoveEmail, toolSendEmail, type ToolErrorCode } from "../lib/tools";
 
 const ListEmailsQuery = z.object({
 	folder: z.string().optional(),
@@ -37,6 +38,14 @@ const UpdateEmailBody = z.object({
 
 const MoveEmailBody = z.object({
 	folderId: z.string().min(1),
+});
+
+const DraftReplyBody = z.object({
+	to: z.string().email(),
+	subject: z.string().min(1),
+	body: z.string(),
+	/** Opt in to the AI draft verifier over the draft body (D3). */
+	verify: z.boolean().optional(),
 });
 
 const EMAIL_ID_PARAM = z.object({ mailboxId: z.string(), id: z.string() });
@@ -172,5 +181,43 @@ export const emailRoutes = new Hono<MailboxContext>()
 		async (c) => {
 			const result = await toolMoveEmail(c.env, c.req.param("mailboxId")!, c.req.param("id")!, c.req.valid("json").folderId);
 			return "error" in result ? apiError(c, 404, "not_found", "Folder not found") : c.json({ status: "moved" });
+		},
+	)
+	.post(
+		"/api/v1/mailboxes/:mailboxId/emails/:id/draft-reply",
+		describeRoute({
+			description:
+				"Draft a reply to an email: saves a draft in the Drafts folder with the quoted original appended and threading set up. Does not send.",
+			responses: {
+				201: {
+					description: "Draft created",
+					content: { "application/json": { schema: resolver(DraftResponseSchema) } },
+				},
+				404: { description: "Original email not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
+			},
+		}),
+		validator("param", EMAIL_ID_PARAM, validationErrorHook),
+		validator("json", DraftReplyBody, validationErrorHook),
+		async (c) => {
+			const { mailboxId, id } = c.req.valid("param");
+			const { to, subject, body, verify } = c.req.valid("json");
+			const result = await toolDraftReply(c.env, mailboxId, {
+				originalEmailId: id,
+				to,
+				subject,
+				body,
+				runVerifyDraft: verify,
+			});
+			if ("error" in result) return apiError(c, 404, "not_found", result.error);
+			return c.json(
+				{
+					id: result.draftId,
+					status: "draft",
+					subject,
+					recipient: to,
+					date: new Date().toISOString(),
+				},
+				201,
+			);
 		},
 	);
