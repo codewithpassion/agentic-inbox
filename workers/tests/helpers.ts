@@ -3,6 +3,7 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import { createExecutionContext, env } from "cloudflare:test";
+import { routeAgentRequest } from "agents";
 import { Hono } from "hono";
 import { app as apiApp } from "../index";
 import { authMiddleware } from "../lib/auth";
@@ -22,6 +23,11 @@ const authedApiApp = new Hono<MailboxContext>()
 	.use("*", authMiddleware)
 	.all("/mcp", (c) => mcpHandler.fetch(mcpRequestWithPrincipal(c.req.raw, c.var.principal), c.env, c.executionCtx as ExecutionContext))
 	.all("/mcp/*", (c) => mcpHandler.fetch(mcpRequestWithPrincipal(c.req.raw, c.var.principal), c.env, c.executionCtx as ExecutionContext))
+	.all("/agents/*", async (c) => {
+		const response = await routeAgentRequest(c.req.raw, c.env);
+		if (response) return response;
+		return c.text("Agent not found", 404);
+	})
 	.route("/", apiApp);
 
 const testEnv = env as unknown as Env;

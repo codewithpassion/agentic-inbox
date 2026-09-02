@@ -2,7 +2,7 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
-import { env } from "cloudflare:test";
+import { env, runInDurableObject } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { generateApiKey, hashApiKey } from "../apiKeys/store";
 import { fetchApi, getApiKeyStore } from "./helpers";
@@ -195,7 +195,55 @@ describe("scoped keys over /mcp (D4)", () => {
 		expect(content?.content?.[0]?.text).toContain("not found");
 	});
 
-	it("an unscoped key still reads its mailboxes", async () => {
+	it("a headerless request to the DO yields an empty (deny) scope", async () => {
+		const sessionId = "scope-check";
+		const stub = env.EMAIL_MCP.get(env.EMAIL_MCP.idFromName(`streamable-http:${sessionId}`));
+
+		// Outside a principal-carrying dispatch there is no scope context:
+		// the fallback must deny (empty), not fall back to stale session state.
+		const scope = await runInDurableObject(stub, (instance) => instance.currentMailboxScope());
+		expect(scope).toEqual([]);
+
+		// Behavioral check through the agent router, headerless: no mailbox
+		// data may leak, whatever the transport-level outcome is.
+		await seedMailbox(DEMO, "headerless probe");
+		const list = await fetchApi(`/agents/email-mcp/streamable-http:${sessionId}`, {
+			method: "POST",
+			headers: JSON_HEADERS,
+			body: JSON.stringify({
+				jsonrpc: "2.0",
+				id: 3,
+				method: "tools/call",
+				params: { name: "list_mailboxes", arguments: {} },
+			}),
+		});
+		const listBody = await list.text();
+		expect(listBody).not.toContain(DEMO);
+		expect(listBody).not.toContain(OTHER);
+
+		// The in-scope control through the normal /mcp path still works.
+		const openSecret = generateApiKey();
+		await getStore().create({
+			name: "open-mcp",
+			keyHash: await hashApiKey(openSecret),
+			keyPrefix: openSecret.slice(0, 12),
+		});
+		const liveSession = await mcpInitialize(openSecret);
+		const ok = await fetchApi("/mcp", {
+			method: "POST",
+			headers: { ...JSON_HEADERS, Authorization: `Bearer ${openSecret}`, "mcp-session-id": liveSession },
+			body: JSON.stringify({
+				jsonrpc: "2.0",
+				id: 5,
+				method: "tools/call",
+				params: { name: "list_mailboxes", arguments: {} },
+			}),
+		});
+		const okBody = await ok.text();
+		expect(okBody).toContain(DEMO);
+	});
+
+		it("an unscoped key still reads its mailboxes", async () => {
 		const emailId = await seedMailbox(OTHER, "readable mail");
 		const secret = generateApiKey();
 		await getStore().create({

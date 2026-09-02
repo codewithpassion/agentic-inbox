@@ -77,6 +77,13 @@ const PRINCIPAL_HEADER = "x-inbox-principal";
  * principal rides on every request as a header and is dispatched under an
  * AsyncLocalStorage context, so each tool call sees the scope of its own
  * request even with concurrent requests on one session.
+ *
+ * Verified for the default streamable-http transport only: there the
+ * worker-side handler tunnels every POST through agent.fetch, so this
+ * header is present for each dispatch. Enabling transport: "sse" in
+ * EmailMCP.serve would route tool messages through onSSEMcpMessage RPC
+ * calls that bypass fetch() entirely - those dispatches find no scope and
+ * are denied by default, i.e. the SSE transport is not supported.
  */
 const requestScopeStorage = new AsyncLocalStorage<{ scope: string[] | null }>();
 
@@ -126,36 +133,35 @@ export class EmailMCP extends McpAgent<Env, unknown, McpPrincipalProps> {
 	});
 
 	/**
-	 * Mailbox scope of the request currently being dispatched, or null for
-	 * unrestricted. Reads the per-request header context first; the
-	 * cold-start props are only a fallback for requests that somehow arrive
-	 * without the principal header.
+	 * Mailbox scope of the request currently being dispatched: null means
+	 * unrestricted, an empty array means deny everything. Outside a request
+	 * dispatch (e.g. the DO reached directly via routeAgentRequest on
+	 * /agents/email-mcp/:name, where partyserver routes every DO binding by
+	 * kebab-cased name) there is no principal header, so the scope denies by
+	 * default instead of trusting stale session state.
 	 */
-	private mailboxScope(): string[] | null {
+	currentMailboxScope(): string[] | null {
 		const current = requestScopeStorage.getStore();
-		if (current) return current.scope;
-		const principal = this.props;
-		return principal?.kind === "api_key" ? (principal.mailboxes ?? null) : null;
+		return current ? current.scope : [];
 	}
 
 	/**
 	 * Refresh the enforced scope for every request: the principal header is
 	 * parsed per request and dispatched under the AsyncLocalStorage context
 	 * that verifyMailbox and list_mailboxes read, so a warm session never
-	 * keeps a stale (possibly wider) scope.
+	 * keeps a stale (possibly wider) scope. A request without the header is
+	 * denied: the DO is also reachable headerless via routeAgentRequest on
+	 * /agents/email-mcp/:name, and the scope must come from the request
+	 * itself, never from whoever first warmed this session.
 	 */
 	override async fetch(request: Request): Promise<Response> {
 		const header = request.headers.get(PRINCIPAL_HEADER);
-		let scope: string[] | null = null;
-		if (header) {
-			const principal = decodePrincipal(header);
-			scope = principal.kind === "api_key" ? (principal.mailboxes ?? null) : null;
-		} else {
-			// No header (not possible via workers/app.ts): fall back to the
-			// cold-start props rather than silently widening access.
-			const principal = this.props;
-			scope = principal?.kind === "api_key" ? (principal.mailboxes ?? null) : null;
-		}
+		const scope: string[] | null = header
+			? (() => {
+					const principal = decodePrincipal(header);
+					return principal.kind === "api_key" ? (principal.mailboxes ?? null) : null;
+				})()
+			: [];
 		return requestScopeStorage.run({ scope }, () => super.fetch(request));
 	}
 
@@ -169,7 +175,7 @@ export class EmailMCP extends McpAgent<Env, unknown, McpPrincipalProps> {
 		 * not-found shape as requireMailbox, or null if valid.
 		 */
 		const verifyMailbox = async (mailboxId: string) => {
-			const scope = this.mailboxScope();
+			const scope = this.currentMailboxScope();
 			if (scope && !scope.includes(mailboxId)) {
 				return mcpError(`Mailbox "${mailboxId}" not found. Use list_mailboxes to see available mailboxes.`);
 			}
@@ -187,7 +193,7 @@ export class EmailMCP extends McpAgent<Env, unknown, McpPrincipalProps> {
 			{},
 			async () => {
 				const result = await toolListMailboxes(env);
-				const scope = this.mailboxScope();
+				const scope = this.currentMailboxScope();
 				const visible = scope ? result.filter((m) => scope.includes(m.id)) : result;
 				return mcpText(visible);
 			},
