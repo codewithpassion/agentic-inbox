@@ -2,8 +2,10 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
+import createClient from "openapi-fetch";
 import type { ProfileConfig } from "./config";
 import { usageError } from "./errors";
+import type { paths } from "./generated/api";
 import { ExitCode } from "./output";
 
 /** API error with its envelope code, mapped to the CLI exit code table. */
@@ -29,12 +31,7 @@ export function exitCodeForStatus(status: number): number {
 	return ExitCode.unexpected;
 }
 
-export interface RequestContext {
-	settings: ProfileConfig;
-	signal?: AbortSignal;
-}
-
-function requireUrl(settings: ProfileConfig): string {
+export function baseUrl(settings: ProfileConfig): string {
 	const url = settings.url?.trim();
 	if (!url) {
 		throw usageError("No base URL configured: pass --url, set INBOX_URL, or run `inbox auth login`");
@@ -42,31 +39,52 @@ function requireUrl(settings: ProfileConfig): string {
 	return url.replace(/\/+$/, "");
 }
 
-/** Minimal JSON request helper for endpoints without generated types yet. */
-export async function apiRequest<T>(ctx: RequestContext, path: string, init?: RequestInit): Promise<T> {
-	const url = `${requireUrl(ctx.settings)}${path}`;
+function requireApiKey(settings: ProfileConfig): string {
+	const key = settings.api_key?.trim();
+	if (!key) {
+		throw usageError("No API key configured: pass --api-key, set INBOX_API_KEY, or run `inbox auth login`");
+	}
+	return key;
+}
+
+/**
+ * Typed client for the generated OpenAPI schema. The spec paths already
+ * include /api/v1, so the base URL is the deployment origin.
+ */
+export function getClient(settings: ProfileConfig) {
+	return createClient<paths>({
+		baseUrl: baseUrl(settings),
+		headers: settings.api_key ? { Authorization: `Bearer ${requireApiKey(settings)}` } : {},
+	});
+}
+
+interface UnwrapResult<TData> {
+	data?: TData;
+	error?: unknown;
+	response: Response;
+}
+
+/** Turn an openapi-fetch result into data, throwing ApiError on failures. */
+export function unwrap<TData>(result: UnwrapResult<TData>): TData {
+	if (result.response.ok && result.data !== undefined) return result.data;
+	const status = result.response.status;
+	if (result.error !== null && result.error !== undefined) {
+		const envelope = result.error as { error?: { code?: string; message?: string } };
+		if (envelope.error?.message) {
+			throw new ApiError(status, envelope.error.code ?? `http_${status}`, envelope.error.message);
+		}
+	}
+	throw new ApiError(status, `http_${status}`, `Request failed: ${status}`);
+}
+
+/**
+ * Download a binary endpoint (attachments) with plain fetch so the body
+ * streams to disk instead of being parsed.
+ */
+export async function download(settings: ProfileConfig, path: string, init?: RequestInit): Promise<Response> {
 	const headers: Record<string, string> = {
-		Accept: "application/json",
 		...(init?.headers as Record<string, string> | undefined),
 	};
-	if (ctx.settings.api_key) headers.Authorization = `Bearer ${ctx.settings.api_key}`;
-	if (init?.body != null && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
-
-	let response: Response;
-	try {
-		response = await fetch(url, { ...init, headers, signal: ctx.signal });
-	} catch (cause) {
-		throw new ApiError(0, "network_error", cause instanceof Error ? cause.message : String(cause));
-	}
-
-	if (!response.ok) {
-		const body = (await response.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
-		throw new ApiError(
-			response.status,
-			body.error?.code ?? `http_${response.status}`,
-			body.error?.message ?? `Request failed: ${response.status}`,
-		);
-	}
-	if (response.status === 204) return undefined as T;
-	return (await response.json()) as T;
+	if (settings.api_key) headers.Authorization = `Bearer ${settings.api_key}`;
+	return fetch(`${baseUrl(settings)}${path}`, { ...init, headers });
 }

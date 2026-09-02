@@ -4,6 +4,7 @@
 
 import type { Command } from "commander";
 import { type ProfileConfig, resolveSettings } from "./config";
+import { usageError } from "./errors";
 import { type OutputFormat, resolveFormat } from "./output";
 
 /** Everything a command needs: resolved settings plus the output mode. */
@@ -14,6 +15,17 @@ export interface Context {
 	stdoutIsTTY: boolean;
 	/** Global --yes (for destructive commands in scripts). */
 	yes: boolean;
+}
+
+/** The mailbox a command should operate on, or a usage error. */
+export function requireMailbox(ctx: Context): string {
+	const mailbox = ctx.settings.mailbox?.trim();
+	if (!mailbox) {
+		throw usageError(
+			"No mailbox given: pass --mailbox, set INBOX_MAILBOX, or set a default mailbox in the config file",
+		);
+	}
+	return mailbox;
 }
 
 /** Build the per-invocation context from global flags + env + config file. */

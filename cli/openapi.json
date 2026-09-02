@@ -1,0 +1,1992 @@
+{
+	"openapi": "3.1.0",
+	"info": {
+		"title": "Agentic Inbox API",
+		"description": "REST API for Agentic Inbox. Authenticate with an API key (Authorization: Bearer aik_...) created in the web UI. verifyDraft note: the MCP server runs an AI pass over outgoing bodies; the REST API does not by default — pass verify: true on draft and send bodies to opt in.",
+		"version": "1.0.0"
+	},
+	"paths": {
+		"/api/v1/me": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Principal",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"principal": {
+											"anyOf": [
+												{
+													"type": "object",
+													"properties": {
+														"kind": { "type": "string", "const": "access" },
+														"email": { "type": "string" }
+													},
+													"required": ["kind", "email"]
+												},
+												{
+													"type": "object",
+													"properties": {
+														"kind": { "type": "string", "const": "api_key" },
+														"keyId": { "type": "string" },
+														"name": { "type": "string" },
+														"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+														"keyPrefix": { "type": "string" }
+													},
+													"required": ["kind", "keyId", "name", "mailboxes", "keyPrefix"]
+												},
+												{
+													"type": "object",
+													"properties": { "kind": { "type": "string", "const": "dev" } },
+													"required": ["kind"]
+												}
+											]
+										}
+									},
+									"required": ["principal"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1Me",
+				"parameters": [],
+				"description": "The authenticated principal: Access identity, API key with its mailbox scope, or dev."
+			}
+		},
+		"/api/v1/api-keys": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Keys",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"keys": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": { "type": "string" },
+													"name": { "type": "string" },
+													"key_prefix": { "type": "string" },
+													"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+													"created_at": { "type": "string" },
+													"created_by": { "type": ["string", "null"] },
+													"expires_at": { "type": ["string", "null"] },
+													"last_used_at": { "type": ["string", "null"] },
+													"revoked_at": { "type": ["string", "null"] }
+												},
+												"required": [
+													"id",
+													"name",
+													"key_prefix",
+													"mailboxes",
+													"created_at",
+													"created_by",
+													"expires_at",
+													"last_used_at",
+													"revoked_at"
+												]
+											}
+										}
+									},
+									"required": ["keys"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "API keys cannot manage keys",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1Api-keys",
+				"parameters": [],
+				"description": "List API keys. The key hash and plaintext secret are never included."
+			},
+			"post": {
+				"responses": {
+					"201": {
+						"description": "Created key with its plaintext secret",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"key": {
+											"type": "object",
+											"properties": {
+												"id": { "type": "string" },
+												"name": { "type": "string" },
+												"key_prefix": { "type": "string" },
+												"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+												"created_at": { "type": "string" },
+												"created_by": { "type": ["string", "null"] },
+												"expires_at": { "type": ["string", "null"] },
+												"last_used_at": { "type": ["string", "null"] },
+												"revoked_at": { "type": ["string", "null"] }
+											},
+											"required": [
+												"id",
+												"name",
+												"key_prefix",
+												"mailboxes",
+												"created_at",
+												"created_by",
+												"expires_at",
+												"last_used_at",
+												"revoked_at"
+											]
+										},
+										"secret": { "type": "string" }
+									},
+									"required": ["key", "secret"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "API keys cannot manage keys",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1Api-keys",
+				"parameters": [],
+				"description": "Create an API key. The plaintext secret (aik_...) is returned exactly once in `secret`; only a SHA-256 hash is stored.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": { "type": "string", "minLength": 1 },
+									"expires_at": { "type": ["string", "null"], "format": "date-time" },
+									"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } }
+								},
+								"required": ["name"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/api-keys/{id}": {
+			"patch": {
+				"responses": {
+					"200": {
+						"description": "Updated key",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"key": {
+											"type": "object",
+											"properties": {
+												"id": { "type": "string" },
+												"name": { "type": "string" },
+												"key_prefix": { "type": "string" },
+												"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+												"created_at": { "type": "string" },
+												"created_by": { "type": ["string", "null"] },
+												"expires_at": { "type": ["string", "null"] },
+												"last_used_at": { "type": ["string", "null"] },
+												"revoked_at": { "type": ["string", "null"] }
+											},
+											"required": [
+												"id",
+												"name",
+												"key_prefix",
+												"mailboxes",
+												"created_at",
+												"created_by",
+												"expires_at",
+												"last_used_at",
+												"revoked_at"
+											]
+										}
+									},
+									"required": ["key"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "API keys cannot manage keys",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Key not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "patchApiV1Api-keysById",
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "id", "required": true }],
+				"description": "Rename a key, change its expiry, or change its mailbox scope (null clears a field).",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"name": { "type": "string", "minLength": 1 },
+									"expires_at": { "type": ["string", "null"], "format": "date-time" },
+									"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } }
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"responses": {
+					"204": { "description": "Deleted" },
+					"403": {
+						"description": "API keys cannot manage keys",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Key not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "deleteApiV1Api-keysById",
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "id", "required": true }],
+				"description": "Delete a key permanently. Requests using it stop working immediately."
+			}
+		},
+		"/api/v1/api-keys/{id}/revoke": {
+			"post": {
+				"responses": {
+					"200": {
+						"description": "Revoked key",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"key": {
+											"type": "object",
+											"properties": {
+												"id": { "type": "string" },
+												"name": { "type": "string" },
+												"key_prefix": { "type": "string" },
+												"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+												"created_at": { "type": "string" },
+												"created_by": { "type": ["string", "null"] },
+												"expires_at": { "type": ["string", "null"] },
+												"last_used_at": { "type": ["string", "null"] },
+												"revoked_at": { "type": ["string", "null"] }
+											},
+											"required": [
+												"id",
+												"name",
+												"key_prefix",
+												"mailboxes",
+												"created_at",
+												"created_by",
+												"expires_at",
+												"last_used_at",
+												"revoked_at"
+											]
+										}
+									},
+									"required": ["key"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "API keys cannot manage keys",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Key not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1Api-keysByIdRevoke",
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "id", "required": true }],
+				"description": "Revoke a key. Verification fails immediately; the record stays for auditing."
+			}
+		},
+		"/api/v1/config": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Configuration",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"domains": { "type": "array", "items": { "type": "string" } },
+										"emailAddresses": { "type": "array", "items": { "type": "string" } }
+									},
+									"required": ["domains", "emailAddresses"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1Config",
+				"parameters": [],
+				"description": "Deployment configuration: allowed domains and pre-provisioned mailbox addresses."
+			}
+		},
+		"/api/v1/mailboxes": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Mailboxes",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"id": { "type": "string" },
+											"name": { "type": "string" },
+											"email": { "type": "string" },
+											"settings": { "type": "object", "additionalProperties": {} }
+										},
+										"required": ["id", "name"]
+									}
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1Mailboxes",
+				"parameters": [],
+				"description": "List every mailbox registered in this deployment."
+			},
+			"post": {
+				"responses": {
+					"201": {
+						"description": "Created mailbox",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"email": { "type": "string" },
+										"settings": { "type": "object", "additionalProperties": {} }
+									},
+									"required": ["id", "name"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "Mailbox address not allowed",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Mailbox already exists",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1Mailboxes",
+				"parameters": [],
+				"description": "Create a mailbox. Restricted to configured EMAIL_ADDRESSES when set.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"email": { "type": "string", "format": "email" },
+									"name": { "type": "string", "minLength": 1 },
+									"settings": { "type": "object", "additionalProperties": {} }
+								},
+								"required": ["email", "name"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Mailbox",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"email": { "type": "string" },
+										"settings": { "type": "object", "additionalProperties": {} }
+									},
+									"required": ["id", "name"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1MailboxesByMailboxId",
+				"parameters": [{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true }],
+				"description": "Get a mailbox with its settings."
+			},
+			"put": {
+				"responses": {
+					"200": {
+						"description": "Updated mailbox",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"email": { "type": "string" },
+										"settings": { "type": "object", "additionalProperties": {} }
+									},
+									"required": ["id", "name"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "putApiV1MailboxesByMailboxId",
+				"parameters": [{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true }],
+				"description": "Replace a mailbox's settings object.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": { "settings": { "type": "object", "additionalProperties": {} } },
+								"required": ["settings"]
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"responses": {
+					"204": { "description": "Deleted" },
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "deleteApiV1MailboxesByMailboxId",
+				"parameters": [{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true }],
+				"description": "Delete a mailbox's settings object. Mail data in the Durable Object is not removed."
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/emails": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Paginated email list",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"emails": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": { "type": "string" },
+													"subject": { "type": ["string", "null"] },
+													"sender": { "type": ["string", "null"] },
+													"recipient": { "type": ["string", "null"] },
+													"cc": { "type": ["string", "null"] },
+													"bcc": { "type": ["string", "null"] },
+													"date": { "type": ["string", "null"] },
+													"read": { "type": "boolean" },
+													"starred": { "type": "boolean" },
+													"in_reply_to": { "type": ["string", "null"] },
+													"email_references": { "type": ["string", "null"] },
+													"thread_id": { "type": ["string", "null"] },
+													"folder_id": { "type": ["string", "null"] },
+													"snippet": { "type": ["string", "null"] },
+													"thread_count": { "type": "number" },
+													"thread_unread_count": { "type": "number" },
+													"participants": { "type": "string" },
+													"needs_reply": { "type": "boolean" },
+													"has_draft": { "type": "boolean" }
+												},
+												"required": ["id", "read", "starred"]
+											}
+										},
+										"totalCount": { "type": "number" }
+									},
+									"required": ["emails", "totalCount"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1MailboxesByMailboxIdEmails",
+				"parameters": [
+					{ "in": "query", "name": "folder", "schema": { "type": "string" } },
+					{ "in": "query", "name": "thread_id", "schema": { "type": "string" } },
+					{ "in": "query", "name": "threaded", "schema": { "type": "string", "enum": ["true", "false", "1", "0"] } },
+					{ "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1 } },
+					{ "in": "query", "name": "limit", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+					{
+						"in": "query",
+						"name": "sortColumn",
+						"schema": { "type": "string", "enum": ["id", "subject", "sender", "recipient", "date", "read", "starred"] }
+					},
+					{ "in": "query", "name": "sortDirection", "schema": { "type": "string", "enum": ["ASC", "DESC"] } },
+					{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }
+				],
+				"description": "List emails in a mailbox. Returns { emails, totalCount }. With threaded=true, each item is a conversation with thread_count/participants aggregates."
+			},
+			"post": {
+				"responses": {
+					"202": {
+						"description": "Accepted for delivery",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": { "id": { "type": "string" }, "status": { "type": "string" } },
+									"required": ["id", "status"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid sender",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Rate limited",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdEmails",
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
+				"description": "Send a new email. Delivery happens asynchronously; the created sent email is returned immediately. Rate limit: 20/hour, 100/day per mailbox.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"to": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"cc": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"bcc": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"from": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{
+												"type": "object",
+												"properties": {
+													"email": { "type": "string", "format": "email" },
+													"name": { "type": "string" }
+												},
+												"required": ["email", "name"]
+											}
+										]
+									},
+									"subject": { "type": "string" },
+									"html": { "type": "string" },
+									"text": { "type": "string" },
+									"attachments": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"content": { "type": "string" },
+												"filename": { "type": "string" },
+												"type": { "type": "string" },
+												"disposition": { "type": "string", "enum": ["attachment", "inline"] },
+												"contentId": { "type": "string" }
+											},
+											"required": ["content", "filename", "type", "disposition"]
+										}
+									},
+									"in_reply_to": { "type": "string" },
+									"references": { "type": "array", "items": { "type": "string" } },
+									"thread_id": { "type": "string" },
+									"verify": { "type": "boolean" }
+								},
+								"required": ["to", "from", "subject"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/emails/{id}": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Email",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"subject": { "type": ["string", "null"] },
+										"sender": { "type": ["string", "null"] },
+										"recipient": { "type": ["string", "null"] },
+										"cc": { "type": ["string", "null"] },
+										"bcc": { "type": ["string", "null"] },
+										"date": { "type": ["string", "null"] },
+										"read": { "type": "boolean" },
+										"starred": { "type": "boolean" },
+										"in_reply_to": { "type": ["string", "null"] },
+										"email_references": { "type": ["string", "null"] },
+										"thread_id": { "type": ["string", "null"] },
+										"folder_id": { "type": ["string", "null"] },
+										"snippet": { "type": ["string", "null"] },
+										"thread_count": { "type": "number" },
+										"thread_unread_count": { "type": "number" },
+										"participants": { "type": "string" },
+										"needs_reply": { "type": "boolean" },
+										"has_draft": { "type": "boolean" },
+										"body": { "type": ["string", "null"] },
+										"message_id": { "type": ["string", "null"] },
+										"raw_headers": { "type": ["string", "null"] },
+										"attachments": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": { "type": "string" },
+													"filename": { "type": "string" },
+													"mimetype": { "type": "string" },
+													"size": { "type": "number" },
+													"content_id": { "type": ["string", "null"] },
+													"disposition": { "type": ["string", "null"] }
+												},
+												"required": ["id", "filename", "mimetype", "size"]
+											}
+										}
+									},
+									"required": ["id", "read", "starred"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1MailboxesByMailboxIdEmailsById",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Get a single email with body and attachments."
+			},
+			"put": {
+				"responses": {
+					"200": {
+						"description": "Updated email",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"subject": { "type": ["string", "null"] },
+										"sender": { "type": ["string", "null"] },
+										"recipient": { "type": ["string", "null"] },
+										"cc": { "type": ["string", "null"] },
+										"bcc": { "type": ["string", "null"] },
+										"date": { "type": ["string", "null"] },
+										"read": { "type": "boolean" },
+										"starred": { "type": "boolean" },
+										"in_reply_to": { "type": ["string", "null"] },
+										"email_references": { "type": ["string", "null"] },
+										"thread_id": { "type": ["string", "null"] },
+										"folder_id": { "type": ["string", "null"] },
+										"snippet": { "type": ["string", "null"] },
+										"thread_count": { "type": "number" },
+										"thread_unread_count": { "type": "number" },
+										"participants": { "type": "string" },
+										"needs_reply": { "type": "boolean" },
+										"has_draft": { "type": "boolean" },
+										"body": { "type": ["string", "null"] },
+										"message_id": { "type": ["string", "null"] },
+										"raw_headers": { "type": ["string", "null"] },
+										"attachments": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": { "type": "string" },
+													"filename": { "type": "string" },
+													"mimetype": { "type": "string" },
+													"size": { "type": "number" },
+													"content_id": { "type": ["string", "null"] },
+													"disposition": { "type": ["string", "null"] }
+												},
+												"required": ["id", "filename", "mimetype", "size"]
+											}
+										}
+									},
+									"required": ["id", "read", "starred"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "putApiV1MailboxesByMailboxIdEmailsById",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Update an email's read and/or starred flags.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": { "read": { "type": "boolean" }, "starred": { "type": "boolean" } }
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"responses": {
+					"204": { "description": "Deleted" },
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "deleteApiV1MailboxesByMailboxIdEmailsById",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Delete an email and its attachment blobs from R2."
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/emails/{id}/move": {
+			"post": {
+				"responses": {
+					"200": {
+						"description": "Moved",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": { "status": { "type": "string", "const": "moved" } },
+									"required": ["status"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Folder not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdMove",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Move an email to a folder (folder id or name).",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": { "folderId": { "type": "string", "minLength": 1 } },
+								"required": ["folderId"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/emails/{id}/draft-reply": {
+			"post": {
+				"responses": {
+					"201": {
+						"description": "Draft created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"status": { "type": "string" },
+										"subject": { "type": "string" },
+										"recipient": { "type": "string" },
+										"date": { "type": "string" }
+									},
+									"required": ["id", "status", "subject", "recipient", "date"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Original email not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdDraft-reply",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Draft a reply to an email: saves a draft in the Drafts folder with the quoted original appended and threading set up. Does not send.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"to": { "type": "string", "format": "email" },
+									"subject": { "type": "string", "minLength": 1 },
+									"body": { "type": "string" },
+									"verify": { "type": "boolean" }
+								},
+								"required": ["to", "subject", "body"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/drafts": {
+			"post": {
+				"responses": {
+					"201": {
+						"description": "Draft created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"status": { "type": "string" },
+										"subject": { "type": "string" },
+										"recipient": { "type": "string" },
+										"date": { "type": "string" }
+									},
+									"required": ["id", "status", "subject", "recipient", "date"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdDrafts",
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
+				"description": "Create a draft, or replace an existing draft when draft_id is given (the old draft is deleted and recreated).",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"to": { "type": "string" },
+									"cc": { "type": "string" },
+									"bcc": { "type": "string" },
+									"subject": { "type": "string" },
+									"body": { "type": "string" },
+									"in_reply_to": { "type": "string" },
+									"thread_id": { "type": "string" },
+									"draft_id": { "type": "string" },
+									"verify": { "type": "boolean" }
+								},
+								"required": ["body"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/drafts/{draftId}": {
+			"patch": {
+				"responses": {
+					"200": {
+						"description": "Draft updated (new id)",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"status": { "type": "string" },
+										"subject": { "type": "string" },
+										"recipient": { "type": "string" },
+										"date": { "type": "string" }
+									},
+									"required": ["id", "status", "subject", "recipient", "date"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Draft not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "patchApiV1MailboxesByMailboxIdDraftsByDraftId",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "draftId", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Update a draft in place: the old draft is deleted and recreated with a new id. Omitted fields carry over from the old draft.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"to": { "type": "string" },
+									"subject": { "type": "string" },
+									"body": { "type": "string" },
+									"verify": { "type": "boolean" }
+								}
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"responses": {
+					"204": { "description": "Discarded" },
+					"400": {
+						"description": "Not a draft",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Draft not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "deleteApiV1MailboxesByMailboxIdDraftsByDraftId",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "draftId", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Discard a draft. Only emails in the Drafts folder can be discarded."
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/emails/{id}/reply": {
+			"post": {
+				"responses": {
+					"202": {
+						"description": "Accepted for delivery",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": { "id": { "type": "string" }, "status": { "type": "string" } },
+									"required": ["id", "status"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid sender",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Original email not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Rate limited",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdReply",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Send a reply to an email. Threading headers are derived from the original; delivery is asynchronous. Rate limit: 20/hour, 100/day per mailbox.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"to": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"cc": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"bcc": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"from": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{
+												"type": "object",
+												"properties": {
+													"email": { "type": "string", "format": "email" },
+													"name": { "type": "string" }
+												},
+												"required": ["email", "name"]
+											}
+										]
+									},
+									"subject": { "type": "string" },
+									"html": { "type": "string" },
+									"text": { "type": "string" },
+									"attachments": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"content": { "type": "string" },
+												"filename": { "type": "string" },
+												"type": { "type": "string" },
+												"disposition": { "type": "string", "enum": ["attachment", "inline"] },
+												"contentId": { "type": "string" }
+											},
+											"required": ["content", "filename", "type", "disposition"]
+										}
+									},
+									"in_reply_to": { "type": "string" },
+									"references": { "type": "array", "items": { "type": "string" } },
+									"thread_id": { "type": "string" },
+									"verify": { "type": "boolean" }
+								},
+								"required": ["to", "from", "subject"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/emails/{id}/forward": {
+			"post": {
+				"responses": {
+					"202": {
+						"description": "Accepted for delivery",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": { "id": { "type": "string" }, "status": { "type": "string" } },
+									"required": ["id", "status"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid sender",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Original email not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"429": {
+						"description": "Rate limited",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdForward",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Forward an email. Delivery is asynchronous. Rate limit: 20/hour, 100/day per mailbox.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"to": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"cc": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"bcc": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
+										]
+									},
+									"from": {
+										"anyOf": [
+											{ "type": "string", "format": "email" },
+											{
+												"type": "object",
+												"properties": {
+													"email": { "type": "string", "format": "email" },
+													"name": { "type": "string" }
+												},
+												"required": ["email", "name"]
+											}
+										]
+									},
+									"subject": { "type": "string" },
+									"html": { "type": "string" },
+									"text": { "type": "string" },
+									"attachments": {
+										"type": "array",
+										"items": {
+											"type": "object",
+											"properties": {
+												"content": { "type": "string" },
+												"filename": { "type": "string" },
+												"type": { "type": "string" },
+												"disposition": { "type": "string", "enum": ["attachment", "inline"] },
+												"contentId": { "type": "string" }
+											},
+											"required": ["content", "filename", "type", "disposition"]
+										}
+									},
+									"in_reply_to": { "type": "string" },
+									"references": { "type": "array", "items": { "type": "string" } },
+									"thread_id": { "type": "string" },
+									"verify": { "type": "boolean" }
+								},
+								"required": ["to", "from", "subject"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/threads/{threadId}": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Thread messages",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"id": { "type": "string" },
+											"subject": { "type": ["string", "null"] },
+											"sender": { "type": ["string", "null"] },
+											"recipient": { "type": ["string", "null"] },
+											"cc": { "type": ["string", "null"] },
+											"bcc": { "type": ["string", "null"] },
+											"date": { "type": ["string", "null"] },
+											"read": { "type": "boolean" },
+											"starred": { "type": "boolean" },
+											"in_reply_to": { "type": ["string", "null"] },
+											"email_references": { "type": ["string", "null"] },
+											"thread_id": { "type": ["string", "null"] },
+											"folder_id": { "type": ["string", "null"] },
+											"snippet": { "type": ["string", "null"] },
+											"thread_count": { "type": "number" },
+											"thread_unread_count": { "type": "number" },
+											"participants": { "type": "string" },
+											"needs_reply": { "type": "boolean" },
+											"has_draft": { "type": "boolean" },
+											"body": { "type": ["string", "null"] },
+											"message_id": { "type": ["string", "null"] },
+											"raw_headers": { "type": ["string", "null"] },
+											"attachments": {
+												"type": "array",
+												"items": {
+													"type": "object",
+													"properties": {
+														"id": { "type": "string" },
+														"filename": { "type": "string" },
+														"mimetype": { "type": "string" },
+														"size": { "type": "number" },
+														"content_id": { "type": ["string", "null"] },
+														"disposition": { "type": ["string", "null"] }
+													},
+													"required": ["id", "filename", "mimetype", "size"]
+												}
+											}
+										},
+										"required": ["id", "read", "starred"]
+									}
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1MailboxesByMailboxIdThreadsByThreadId",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "threadId", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Get every email in a conversation thread, oldest first, with attachments."
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/threads/{threadId}/read": {
+			"post": {
+				"responses": {
+					"200": {
+						"description": "Marked read",
+						"content": {
+							"application/json": {
+								"schema": { "type": "object", "properties": { "status": { "type": "string" } }, "required": ["status"] }
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdThreadsByThreadIdRead",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "threadId", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Mark every email in a thread as read."
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/folders": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Folders",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"id": { "type": "string" },
+											"name": { "type": "string" },
+											"unreadCount": { "type": "number" }
+										},
+										"required": ["id", "name", "unreadCount"]
+									}
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1MailboxesByMailboxIdFolders",
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
+				"description": "List a mailbox's folders with unread counts."
+			},
+			"post": {
+				"responses": {
+					"201": {
+						"description": "Created folder",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"unreadCount": { "type": "number" }
+									},
+									"required": ["id", "name", "unreadCount"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid name",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Folder already exists",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1MailboxesByMailboxIdFolders",
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
+				"description": "Create a folder. The id is the slugified name.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": { "name": { "type": "string", "minLength": 1 } },
+								"required": ["name"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/folders/{id}": {
+			"put": {
+				"responses": {
+					"200": {
+						"description": "Updated folder",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"unreadCount": { "type": "number" }
+									},
+									"required": ["id", "name", "unreadCount"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Folder not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "putApiV1MailboxesByMailboxIdFoldersById",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Rename a folder.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": { "name": { "type": "string", "minLength": 1 } },
+								"required": ["name"]
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"responses": {
+					"204": { "description": "Deleted" },
+					"400": {
+						"description": "Folder missing or protected",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "deleteApiV1MailboxesByMailboxIdFoldersById",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Delete a folder. Built-in folders (inbox, sent, draft, archive, trash) cannot be deleted."
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/search": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Paginated search results",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"emails": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"id": { "type": "string" },
+													"subject": { "type": ["string", "null"] },
+													"sender": { "type": ["string", "null"] },
+													"recipient": { "type": ["string", "null"] },
+													"cc": { "type": ["string", "null"] },
+													"bcc": { "type": ["string", "null"] },
+													"date": { "type": ["string", "null"] },
+													"read": { "type": "boolean" },
+													"starred": { "type": "boolean" },
+													"in_reply_to": { "type": ["string", "null"] },
+													"email_references": { "type": ["string", "null"] },
+													"thread_id": { "type": ["string", "null"] },
+													"folder_id": { "type": ["string", "null"] },
+													"snippet": { "type": ["string", "null"] },
+													"thread_count": { "type": "number" },
+													"thread_unread_count": { "type": "number" },
+													"participants": { "type": "string" },
+													"needs_reply": { "type": "boolean" },
+													"has_draft": { "type": "boolean" }
+												},
+												"required": ["id", "read", "starred"]
+											}
+										},
+										"totalCount": { "type": "number" }
+									},
+									"required": ["emails", "totalCount"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1MailboxesByMailboxIdSearch",
+				"parameters": [
+					{ "in": "query", "name": "query", "schema": { "type": "string" } },
+					{ "in": "query", "name": "folder", "schema": { "type": "string" } },
+					{ "in": "query", "name": "from", "schema": { "type": "string" } },
+					{ "in": "query", "name": "to", "schema": { "type": "string" } },
+					{ "in": "query", "name": "subject", "schema": { "type": "string" } },
+					{ "in": "query", "name": "date_start", "schema": { "type": "string" } },
+					{ "in": "query", "name": "date_end", "schema": { "type": "string" } },
+					{ "in": "query", "name": "is_read", "schema": { "type": "string", "enum": ["true", "false", "1", "0"] } },
+					{ "in": "query", "name": "is_starred", "schema": { "type": "string", "enum": ["true", "false", "1", "0"] } },
+					{
+						"in": "query",
+						"name": "has_attachment",
+						"schema": { "type": "string", "enum": ["true", "false", "1", "0"] }
+					},
+					{ "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1 } },
+					{ "in": "query", "name": "limit", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+					{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }
+				],
+				"description": "Search emails with optional field filters. query matches subject, body, sender, and recipients; dates are inclusive ISO timestamps."
+			}
+		},
+		"/api/v1/mailboxes/{mailboxId}/emails/{emailId}/attachments/{attachmentId}": {
+			"get": {
+				"responses": {
+					"200": { "description": "Attachment file", "content": { "*/*": { "schema": { "type": "string" } } } },
+					"404": {
+						"description": "Attachment not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1MailboxesByMailboxIdEmailsByEmailIdAttachmentsByAttachmentId",
+				"parameters": [
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "emailId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "attachmentId", "schema": { "type": "string" }, "required": true }
+				],
+				"description": "Download an attachment. Returns the raw file as a binary download."
+			}
+		}
+	},
+	"components": { "schemas": {} }
+}

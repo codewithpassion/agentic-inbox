@@ -11,7 +11,12 @@
 import { Command, CommanderError } from "commander";
 import pkg from "../package.json" with { type: "json" };
 import { ApiError } from "./client";
+import { registerAttachments } from "./commands/attachments";
 import { registerAuth } from "./commands/auth";
+import { registerEmails } from "./commands/emails";
+import { registerFolders } from "./commands/folders";
+import { registerMailboxes } from "./commands/mailboxes";
+import { registerThreads } from "./commands/threads";
 import { CliError, unexpectedError } from "./errors";
 import { ExitCode, printError } from "./output";
 
@@ -30,6 +35,11 @@ export function buildProgram(): Command {
 		.option("--yes", "Skip confirmation prompts (destructive commands)");
 
 	registerAuth(program);
+	registerMailboxes(program);
+	registerEmails(program);
+	registerThreads(program);
+	registerFolders(program);
+	registerAttachments(program);
 
 	return program;
 }

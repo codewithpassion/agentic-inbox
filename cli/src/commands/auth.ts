@@ -3,8 +3,9 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import type { Command } from "commander";
-import { apiRequest } from "../client";
+import { getClient, unwrap } from "../client";
 import { clearApiKey, configPath, resolveSettings, saveProfile } from "../config";
+import { makeContext } from "../context";
 import { usageError } from "../errors";
 import { type OutputFormat, printJson, renderKv } from "../output";
 import { readHidden, readLine } from "../prompt";
@@ -81,10 +82,8 @@ export function registerAuth(program: Command): void {
 	auth
 		.command("login")
 		.description("Store the base URL and API key for a profile")
-		.option("--url <url>", "Base URL of your Agentic Inbox deployment")
-		.option("--api-key <key>", "API key (aik_...); prompted without echo on a TTY when omitted")
-		.option("--profile <name>", "Named profile to write to")
-		.action(async (opts: AuthOptions) => {
+		.action(async function (this: Command) {
+			const opts = this.optsWithGlobals() as AuthOptions;
 			const credentials = await gatherCredentials(opts);
 			if (!credentials) {
 				throw usageError("auth login needs --url and --api-key when not attached to a terminal");
@@ -100,21 +99,18 @@ export function registerAuth(program: Command): void {
 	auth
 		.command("status")
 		.description("Show the principal the current credentials resolve to")
-		.option("--profile <name>", "Named profile to use")
 		.action(async function (this: Command) {
-			const opts = this.optsWithGlobals() as AuthOptions & { json?: boolean; format?: string };
-			const settings = resolveSettings({ profile: opts.profile });
-			const { principal } = await apiRequest<{ principal: PrincipalInfo }>({ settings }, "/api/v1/me");
-			const stdoutIsTTY = process.stdout.isTTY ?? false;
-			const format: OutputFormat = opts.json || opts.format === "json" ? "json" : stdoutIsTTY ? "table" : "json";
-			outputPrincipal(principal, format);
+			const ctx = makeContext(this);
+			const client = getClient(ctx.settings);
+			const { principal } = unwrap(await client.GET("/api/v1/me")) as { principal: PrincipalInfo };
+			outputPrincipal(principal, ctx.format);
 		});
 
 	auth
 		.command("logout")
 		.description("Remove the stored API key for a profile")
-		.option("--profile <name>", "Named profile to clear")
-		.action(async (opts: AuthOptions) => {
+		.action(async function (this: Command) {
+			const opts = this.optsWithGlobals() as AuthOptions;
 			const profile = activeProfile(opts);
 			clearApiKey(profile, configPath(process.env.XDG_CONFIG_HOME));
 			process.stderr.write(`API key cleared for profile "${profile}"\n`);
