@@ -409,4 +409,9 @@ async function receiveEmail(event: { raw: ReadableStream; rawSize: number }, env
 	})).catch((e) => console.error("Auto-draft trigger failed:", (e as Error).message)));
 }
 
+// Re-exported so the vitest workers pool (whose main module is this file)
+// can resolve the Durable Object class names for the test bindings.
+export { MailboxDO } from "./durableObject";
+export { ApiKeyStore } from "./apiKeys/store";
+
 export { app, receiveEmail };

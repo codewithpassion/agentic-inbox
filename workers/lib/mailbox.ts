@@ -9,11 +9,13 @@
  */
 import { createMiddleware } from "hono/factory";
 import type { MailboxDO } from "../durableObject";
+import type { Principal } from "./auth";
 import type { Env } from "../types";
 
 export type MailboxContext = {
 	Bindings: Env;
 	Variables: {
+		principal: Principal;
 		mailboxStub: DurableObjectStub<MailboxDO>;
 	};
 };

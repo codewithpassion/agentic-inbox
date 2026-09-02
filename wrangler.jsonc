@@ -51,6 +51,10 @@
 			{
 				"name": "EMAIL_MCP",
 				"class_name": "EmailMCP"
+			},
+			{
+				"name": "API_KEYS",
+				"class_name": "ApiKeyStore"
 			}
 		]
 	},
@@ -71,6 +75,12 @@
 			"tag": "v3",
 			"new_sqlite_classes": [
 				"EmailMCP"
+			]
+		},
+		{
+			"tag": "v4",
+			"new_sqlite_classes": [
+				"ApiKeyStore"
 			]
 		}
 	]

@@ -169,3 +169,27 @@ export const mailboxMigrations: Migration[] = [
         `,
 	},
 ];
+
+/**
+ * Migrations for the singleton ApiKeyStore Durable Object.
+ * Runs in its own DO storage, so migration names don't clash with mailboxMigrations.
+ */
+export const apiKeysMigrations: Migration[] = [
+	{
+		name: "1_create_api_keys",
+		sql: txn(`
+            CREATE TABLE api_keys (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                key_prefix TEXT NOT NULL,
+                key_hash TEXT NOT NULL UNIQUE,
+                mailboxes TEXT,
+                created_at TEXT NOT NULL,
+                created_by TEXT,
+                expires_at TEXT,
+                last_used_at TEXT,
+                revoked_at TEXT
+            );
+        `),
+	},
+];

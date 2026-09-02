@@ -4,13 +4,15 @@
 
 import { routeAgentRequest } from "agents";
 import { Hono } from "hono";
-import { jwtVerify, createRemoteJWKSet } from "jose";
 import { createRequestHandler } from "react-router";
 import { app as apiApp, receiveEmail } from "./index";
 import { EmailMCP } from "./mcp";
+import { authMiddleware } from "./lib/auth";
+import type { MailboxContext } from "./lib/mailbox";
 import type { Env } from "./types";
 
 export { MailboxDO } from "./durableObject";
+export { ApiKeyStore } from "./apiKeys/store";
 export { EmailAgent } from "./agent";
 export { EmailMCP } from "./mcp";
 
@@ -28,57 +30,13 @@ const requestHandler = createRequestHandler(
 	import.meta.env.MODE,
 );
 
-function getAccessUrls(teamDomain: string) {
-	const certsPath = "/cdn-cgi/access/certs";
-	const teamUrl = new URL(teamDomain);
-	const issuer = teamUrl.origin;
-	const certsUrl = teamUrl.pathname.endsWith(certsPath)
-		? teamUrl
-		: new URL(certsPath, issuer);
-
-	return { issuer, certsUrl };
-}
-
 // Main app that wraps the API and adds React Router fallback
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<MailboxContext>();
 
-// Cloudflare Access JWT validation middleware (production only)
-app.use("*", async (c, next) => {
-	// Skip validation in development
-	if (import.meta.env.DEV) {
-		return next();
-	}
-
-	const { POLICY_AUD, TEAM_DOMAIN } = c.env;
-
-	// Fail closed in production if Access is not configured.
-	if (!POLICY_AUD || !TEAM_DOMAIN) {
-		return c.text(
-			"Cloudflare Access must be configured in production. Set POLICY_AUD and TEAM_DOMAIN.",
-			500,
-		);
-	}
-
-	const token = c.req.header("cf-access-jwt-assertion");
-	if (!token) {
-		return c.text("Missing required CF Access JWT", 403);
-	}
-
-	try {
-		const { issuer, certsUrl } = getAccessUrls(TEAM_DOMAIN);
-		const JWKS = createRemoteJWKSet(certsUrl);
-		await jwtVerify(token, JWKS, {
-			issuer,
-			audience: POLICY_AUD,
-		});
-	} catch {
-		return c.text("Invalid or expired Access token", 403);
-	}
-
-	// Authorization model note: once a teammate passes the shared Cloudflare
-	// Access policy, they can access all mailboxes in this app by design.
-	return next();
-});
+// Resolves the request principal (API key, Cloudflare Access JWT, or dev
+// bypass) and stores it on the context. See workers/lib/auth.ts for the
+// resolution order and the production failure modes.
+app.use("*", authMiddleware);
 
 // MCP server endpoint — used by AI coding tools (ProtoAgent, Claude Code, Cursor, etc.)
 // Must be before API routes and React Router catch-all

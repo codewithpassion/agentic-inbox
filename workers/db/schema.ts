@@ -42,3 +42,17 @@ export const attachments = sqliteTable("attachments", {
 	content_id: text("content_id"),
 	disposition: text("disposition"),
 });
+
+export const apiKeys = sqliteTable("api_keys", {
+	id: text("id").primaryKey(),
+	name: text("name").notNull(),
+	key_prefix: text("key_prefix").notNull(),
+	key_hash: text("key_hash").notNull().unique(),
+	// JSON array of mailbox ids, null means unrestricted access to all mailboxes
+	mailboxes: text("mailboxes"),
+	created_at: text("created_at").notNull(),
+	created_by: text("created_by"),
+	expires_at: text("expires_at"),
+	last_used_at: text("last_used_at"),
+	revoked_at: text("revoked_at"),
+});
