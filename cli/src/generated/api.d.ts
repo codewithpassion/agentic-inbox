@@ -1001,6 +1001,20 @@ export interface operations {
 					};
 				};
 			};
+			/** @description Mailbox not found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
 		};
 	};
 	postApiV1MailboxesByMailboxIdEmails: {
@@ -1058,6 +1072,20 @@ export interface operations {
 			};
 			/** @description Invalid sender */
 			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+			/** @description Mailbox not found */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -1400,6 +1428,20 @@ export interface operations {
 						subject: string;
 						recipient: string;
 						date: string;
+					};
+				};
+			};
+			/** @description Mailbox not found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
 					};
 				};
 			};
@@ -1754,6 +1796,20 @@ export interface operations {
 					}[];
 				};
 			};
+			/** @description Mailbox not found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
 		};
 	};
 	postApiV1MailboxesByMailboxIdThreadsByThreadIdRead: {
@@ -1805,6 +1861,20 @@ export interface operations {
 					}[];
 				};
 			};
+			/** @description Mailbox not found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
 		};
 	};
 	postApiV1MailboxesByMailboxIdFolders: {
@@ -1839,6 +1909,20 @@ export interface operations {
 			};
 			/** @description Invalid name */
 			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+			/** @description Mailbox not found */
+			404: {
 				headers: {
 					[name: string]: unknown;
 				};
@@ -1947,6 +2031,20 @@ export interface operations {
 					};
 				};
 			};
+			/** @description Mailbox not found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
 		};
 	};
 	getApiV1MailboxesByMailboxIdSearch: {
@@ -2002,6 +2100,20 @@ export interface operations {
 							has_draft?: boolean;
 						}[];
 						totalCount: number;
+					};
+				};
+			};
+			/** @description Mailbox not found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
 					};
 				};
 			};
