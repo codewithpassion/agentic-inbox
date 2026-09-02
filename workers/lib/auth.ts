@@ -137,27 +137,30 @@ export async function resolvePrincipal(
 		};
 	}
 
-	// 2. Development bypass: every route is open on localhost without a key.
+	// 2. Cloudflare Access JWT, header first, then the CF_Authorization cookie.
+	const accessJwt = getAccessJwt(request);
+	if (accessJwt) {
+		// Fail closed in production if Access is not configured.
+		if (!env.POLICY_AUD || !env.TEAM_DOMAIN) {
+			return { ok: false, reason: "misconfigured" };
+		}
+		try {
+			const email = await verifyAccessJwt(request, env);
+			return { ok: true, principal: { kind: "access", email } };
+		} catch {
+			return { ok: false, reason: "invalid_access" };
+		}
+	}
+
+	// 3. Development bypass: every route is open on localhost without a key.
 	if (options?.isDev ?? isDev()) {
 		return { ok: true, principal: { kind: "dev" } };
 	}
 
-	// Fail closed in production if Access is not configured.
 	if (!env.POLICY_AUD || !env.TEAM_DOMAIN) {
 		return { ok: false, reason: "misconfigured" };
 	}
-
-	// 3. Cloudflare Access JWT, header first, then the CF_Authorization cookie.
-	if (!getAccessJwt(request)) {
-		return { ok: false, reason: "missing" };
-	}
-
-	try {
-		const email = await verifyAccessJwt(request, env);
-		return { ok: true, principal: { kind: "access", email } };
-	} catch {
-		return { ok: false, reason: "invalid_access" };
-	}
+	return { ok: false, reason: "missing" };
 }
 
 /**

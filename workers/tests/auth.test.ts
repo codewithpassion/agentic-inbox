@@ -154,6 +154,15 @@ describe("resolvePrincipal: Access JWT branch", () => {
 		expect(result).toEqual({ ok: false, reason: "invalid_access" });
 	});
 
+	it("prefers a valid Access JWT over the dev principal", async () => {
+		const result = await resolvePrincipal(
+			new Request("https://x/", { headers: { "cf-access-jwt-assertion": await signedToken() } }),
+			prodEnv,
+			{ isDev: true },
+		);
+		expect(result).toEqual({ ok: true, principal: { kind: "access", email: "human@example.com" } });
+	});
+
 	it("reports missing credentials when no token and not dev", async () => {
 		const result = await resolvePrincipal(new Request("https://x/"), prodEnv, { isDev: false });
 		expect(result).toEqual({ ok: false, reason: "missing" });
