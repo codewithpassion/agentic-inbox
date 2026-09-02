@@ -195,7 +195,7 @@ const GROUPS: GroupDoc[] = [
 
 const EXIT_CODES = "exit codes: 0 ok, 1 unexpected, 2 usage, 3 API 4xx, 4 confirmation required, 5 auth, 6 not found";
 
-function renderDocs(): string {
+function renderDocs(groups: GroupDoc[]): string {
 	const lines: string[] = [
 		"inbox - CLI for Agentic Inbox (REST API, authenticated with an API key)",
 		"global flags:",
@@ -204,7 +204,7 @@ function renderDocs(): string {
 		EXIT_CODES,
 		"",
 	];
-	for (const group of GROUPS) {
+	for (const group of groups) {
 		lines.push(`${group.name} - ${group.description}`);
 		for (const cmd of group.commands) {
 			const args = cmd.args ? ` ${cmd.args}` : "";
@@ -223,24 +223,21 @@ export function registerAgentDocs(program: Command): void {
 		.command("agent-docs")
 		.description("Print a compact, deterministic command reference for LLM prompts")
 		.option("--command <name>", "Only the named group (e.g. emails)")
-		.option("--json", "Emit the docs as JSON instead of text")
-		.action((opts: { command?: string; json?: boolean }) => {
+		.action(async function (this: Command) {
+			// --json is a global flag; a local --json would never fire because
+			// Commander resolves the parent's flag first.
+			const opts = this.optsWithGlobals() as { command?: string; json?: boolean };
 			const groups = opts.command ? GROUPS.filter((g) => g.name === opts.command) : GROUPS;
-			if (opts.json) {
-				printJson({ global_flags: GLOBAL_FLAGS, exit_codes: EXIT_CODES, groups });
-				return;
-			}
 			if (groups.length === 0) {
 				process.stderr.write(`unknown command group: ${opts.command}\n`);
 				process.exitCode = 2;
 				return;
 			}
-			const lines = renderDocs();
-			if (opts.command) {
-				process.stdout.write(lines.split(`${opts.command} - `)[1] ?? lines);
+			if (opts.json) {
+				printJson({ global_flags: GLOBAL_FLAGS, exit_codes: EXIT_CODES, groups });
 				return;
 			}
-			process.stdout.write(lines);
+			process.stdout.write(renderDocs(groups));
 		});
 }
 
