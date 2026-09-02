@@ -2,9 +2,9 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
+import { Link as RouterLink, useParams } from "react-router";
 import { Button, Tooltip } from "@cloudflare/kumo";
-import { PlugsIcon, WrenchIcon } from "@phosphor-icons/react";
-import { useParams } from "react-router";
+import { KeyIcon, PlugsIcon, WrenchIcon } from "@phosphor-icons/react";
 import { CopyButton } from "./CopyButton";
 
 const TOOLS = [
@@ -68,6 +68,49 @@ export default function MCPPanel() {
 						</div>
 						<div className="bg-kumo-recessed text-kumo-default font-mono text-[11px] px-3 py-2.5 pr-10 rounded-lg border border-kumo-line break-all leading-relaxed">
 							{mcpUrl}
+						</div>
+					</div>
+				</div>
+
+				{/* REST API and CLI */}
+				<div className="space-y-2">
+					<h4 className="text-xs uppercase tracking-wider font-semibold text-kumo-subtle px-0.5">
+						REST API and CLI
+					</h4>
+					<p className="text-xs text-kumo-subtle leading-relaxed">
+						Prefer plain HTTP or a terminal? The same operations are available
+						with an API key, and the <span className="font-mono">inbox</span> CLI
+						wraps them for scripts and agents.
+					</p>
+					<div className="rounded-lg border border-kumo-line divide-y divide-kumo-line text-xs">
+						<RouterLink
+							to="/settings/api-keys"
+							className="flex items-center gap-2 px-3 py-2 hover:bg-kumo-tint"
+						>
+							<KeyIcon size={12} weight="bold" className="text-kumo-brand shrink-0" />
+							<span className="text-kumo-default">Create an API key</span>
+						</RouterLink>
+						<a
+							href="/api/v1/openapi.json"
+							className="flex items-center gap-2 px-3 py-2 hover:bg-kumo-tint"
+						>
+							<PlugsIcon size={12} weight="bold" className="text-kumo-brand shrink-0" />
+							<span className="text-kumo-default font-mono">/api/v1/openapi.json</span>
+						</a>
+					</div>
+					<div className="space-y-1.5">
+						<label className="text-xs font-medium text-kumo-strong block">
+							Get started with the CLI
+						</label>
+						<div className="relative group">
+							<div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+								<CopyButton text={"inbox auth login --url " + baseUrl + " --api-key aik_..."} />
+							</div>
+							<div className="bg-kumo-recessed text-kumo-default font-mono text-[11px] px-3 py-2.5 pr-10 rounded-lg border border-kumo-line break-all leading-relaxed">
+								inbox auth login --url {baseUrl} --api-key aik_...
+								<br />
+								inbox mailboxes list
+							</div>
 						</div>
 					</div>
 				</div>

@@ -10,6 +10,7 @@
  */
 import { Command, CommanderError } from "commander";
 import pkg from "../package.json" with { type: "json" };
+import { registerAgentDocs, registerCompletions } from "./agent-docs";
 import { ApiError } from "./client";
 import { registerAttachments } from "./commands/attachments";
 import { registerAuth } from "./commands/auth";
@@ -42,6 +43,14 @@ export function buildProgram(): Command {
 	registerDrafts(program);
 	registerFolders(program);
 	registerAttachments(program);
+	registerAgentDocs(program);
+	registerCompletions(program);
+	program
+		.command("version")
+		.description("Print version")
+		.action(() => {
+			process.stdout.write(`${pkg.version}\n`);
+		});
 
 	return program;
 }

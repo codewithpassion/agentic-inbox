@@ -42,6 +42,7 @@ describe("resolvePrincipal: API key branch", () => {
 				keyId: expect.any(String),
 				name: "cli",
 				mailboxes: ["a@example.com"],
+				keyPrefix: key.slice(0, 12),
 			},
 		});
 	});

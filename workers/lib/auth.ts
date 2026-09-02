@@ -25,7 +25,14 @@ import type { Env } from "../types";
 
 export type Principal =
 	| { kind: "access"; email: string }
-	| { kind: "api_key"; keyId: string; name: string; mailboxes: string[] | null }
+	| {
+			kind: "api_key";
+			keyId: string;
+			name: string;
+			mailboxes: string[] | null;
+			/** Display prefix (`aik_` + 8 chars) so clients can show which key is in use. */
+			keyPrefix: string;
+	  }
 	| { kind: "dev" };
 
 export type AppContext = {
@@ -125,6 +132,7 @@ export async function resolvePrincipal(
 				keyId: record.id,
 				name: record.name,
 				mailboxes: record.mailboxes,
+				keyPrefix: record.key_prefix,
 			},
 		};
 	}

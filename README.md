@@ -70,6 +70,28 @@ The machine-readable contract lives at `GET /api/v1/openapi.json` (OpenAPI 3.1).
 
 Point an MCP client at `https://mail.example.com/mcp` with the header `Authorization: Bearer aik_...`. Access service tokens keep working as before.
 
+### The inbox CLI
+
+`inbox`, a compiled CLI for the same API, ships from this repo. Install it from a release (or build it yourself with `bun` and `cli/scripts/build-all.sh`):
+
+```bash
+curl -fsSL <release-asset-base>/install.sh | bash
+```
+
+Log in once, then explore:
+
+```
+inbox auth login --url https://mail.example.com --api-key aik_...
+inbox mailboxes list
+inbox emails list --mailbox hello@example.com
+```
+
+The CLI prints JSON when stdout is piped (or with `--json`) and tables on a terminal, and it never prompts when it is not attached to a terminal: destructive commands want `--yes` and exit 4 without it. Exit codes: 0 ok, 1 unexpected, 2 usage, 3 API 4xx, 4 confirmation required, 5 auth, 6 not found.
+
+For agents, `inbox agent-docs` prints a compact, deterministic command reference sized for a system prompt.
+
+Note for contributors: `cli/openapi.json` is a snapshot of the API contract, and `cli/src/generated/api.d.ts` is generated from it. If you change a route, run `npm run openapi:export` and then `bun run gen` inside `cli/`; a route rename fails the CLI build until you do.
+
 ### The verifyDraft difference
 
 The MCP server and the agent run an AI pass (`verifyDraft`) over outgoing bodies to strip prompt-injection artifacts. The REST API does not do this by default: a human on the CLI would not expect a model to rewrite their text, and the guardrail belongs to whoever generated the content. To opt in, pass `"verify": true` on draft and send bodies.

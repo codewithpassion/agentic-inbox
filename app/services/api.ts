@@ -125,7 +125,7 @@ export interface ApiKey {
 
 export type PrincipalInfo =
 	| { kind: "access"; email: string }
-	| { kind: "api_key"; keyId: string; name: string; mailboxes: string[] | null }
+	| { kind: "api_key"; keyId: string; name: string; mailboxes: string[] | null; keyPrefix: string }
 	| { kind: "dev" };
 
 // ---------- API client ----------

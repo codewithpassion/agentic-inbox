@@ -1,0 +1,69 @@
+# Copyright (c) 2026 Cloudflare, Inc.
+# Licensed under the Apache 2.0 license found in the LICENSE file or at:
+#     https://opensource.org/licenses/Apache-2.0
+#
+# Builds the `inbox` CLI binaries and publishes them to a GitHub Release.
+# Triggered by pushing a tag like `cli-v0.1.0`.
+
+name: Release CLI
+
+on:
+  push:
+    tags:
+      - "cli-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: cli
+        run: bun install --frozen-lockfile
+
+      - name: Lint and typecheck
+        working-directory: cli
+        run: |
+          bun run lint
+          bun run typecheck
+
+      - name: Test
+        working-directory: cli
+        run: bun test
+
+      - name: Build binaries
+        working-directory: cli
+        run: bash scripts/build-all.sh
+
+      - name: Rename binaries with platform names
+        working-directory: cli/bin
+        run: |
+          mv inbox-bun-linux-x64 inbox-linux-x64
+          mv inbox-bun-linux-arm64 inbox-linux-arm64
+          mv inbox-bun-darwin-arm64 inbox-darwin-arm64
+          mv inbox-bun-darwin-x64 inbox-darwin-x64
+          mv inbox-bun-windows-x64 inbox-windows-x64.exe
+
+      - name: Checksums
+        working-directory: cli/bin
+        run: sha256sum inbox-* > SHA256SUMS
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            cli/bin/inbox-linux-x64
+            cli/bin/inbox-linux-arm64
+            cli/bin/inbox-darwin-arm64
+            cli/bin/inbox-darwin-x64
+            cli/bin/inbox-windows-x64.exe
+            cli/bin/SHA256SUMS
+          generate_release_notes: true

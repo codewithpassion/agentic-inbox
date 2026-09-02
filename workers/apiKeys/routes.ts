@@ -89,6 +89,7 @@ apiKeyRoutes.get(
 										keyId: z.string(),
 										name: z.string(),
 										mailboxes: z.array(z.string()).nullable(),
+										keyPrefix: z.string(),
 									}),
 									z.object({ kind: z.literal("dev") }),
 								]),
