@@ -35,6 +35,45 @@ https://github.com/cloudflare/agentic-inbox/issues/4#issuecomment-4269118513
 2. If you see `Cloudflare Access must be configured in production`, this application is intentionally enforcing Cloudflare Access so your inbox is not exposed to anyone on the internet.
    * Resolution: enable Access using [one-click Cloudflare Access for Workers](https://developers.cloudflare.com/changelog/post/2025-10-03-one-click-access-for-workers/), then set the `POLICY_AUD` and `TEAM_DOMAIN` Worker secrets from the modal values.
 
+## API access
+
+Scripts and agents can call the REST API with an API key instead of a browser session. The key authenticates the REST surface at `/api/v1/*` and the MCP server at `/mcp`. The AI agent WebSocket (`/agents/*`) stays browser-only.
+
+### One-time Cloudflare Access setup
+
+Access runs at Cloudflare's edge, before the Worker. A request that carries only an API key is therefore blocked at the edge until you add a bypass for the API paths. Do this once in the Cloudflare dashboard:
+
+1. Go to **Zero Trust > Access > Applications > Add an application > Self-hosted**.
+2. For the application domain, enter your Worker hostname followed by `/api/v1/*` (for example `mail.example.com/api/v1/*`). Repeat with a second application for `/mcp*` if you want key-authenticated MCP clients.
+3. Add a single policy with action **Bypass** that includes **Everyone**.
+4. Keep the application's default cookie settings (Cookie Path Attribute off) so the browser session keeps working.
+
+Cloudflare matches the most specific application, so these path rules win over the Worker-level Access application for those paths. The Worker then checks API keys itself. Browser users are unaffected: the Worker verifies the `CF_Authorization` cookie when Access stops injecting the JWT header on those paths.
+
+Order matters: deploy this Worker version (which verifies the cookie) before creating the bypass, or browser sessions on those paths will break until it is deployed. On a fresh deploy this is automatic.
+
+### Creating and using a key
+
+1. Open your deployed app and go to **API keys** (the key icon in the header, or `/settings/api-keys`).
+2. Click **Create key**, give it a name, and optionally set an expiry or restrict it to specific mailboxes.
+3. Copy the key. It is shown once and stored only as a SHA-256 hash.
+
+Every key can do what a signed-in user can do, restricted to the mailboxes you selected. Use `curl`:
+
+```bash
+curl -H "Authorization: Bearer aik_..." https://mail.example.com/api/v1/mailboxes
+```
+
+The machine-readable contract lives at `GET /api/v1/openapi.json` (OpenAPI 3.1). Errors use the envelope `{"error": {"code": "not_found", "message": "..."}}`.
+
+### MCP with an API key
+
+Point an MCP client at `https://mail.example.com/mcp` with the header `Authorization: Bearer aik_...`. Access service tokens keep working as before.
+
+### The verifyDraft difference
+
+The MCP server and the agent run an AI pass (`verifyDraft`) over outgoing bodies to strip prompt-injection artifacts. The REST API does not do this by default: a human on the CLI would not expect a model to rewrite their text, and the guardrail belongs to whoever generated the content. To opt in, pass `"verify": true` on draft and send bodies.
+
 ## Features
 
 - **Full email client** — Send and receive emails via Cloudflare Email Routing with a rich text composer, reply/forward threading, folder organization, search, and attachments
