@@ -69,6 +69,7 @@ export const emailRoutes = new Hono<MailboxContext>()
 					description: "Paginated email list",
 					content: { "application/json": { schema: resolver(EmailListResponseSchema) } },
 				},
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
 		validator("query", ListEmailsQuery, validationErrorHook),
@@ -98,6 +99,7 @@ export const emailRoutes = new Hono<MailboxContext>()
 					content: { "application/json": { schema: resolver(z.object({ id: z.string(), status: z.string() })) } },
 				},
 				400: { description: "Invalid sender", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 				429: { description: "Rate limited", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
@@ -146,7 +148,7 @@ export const emailRoutes = new Hono<MailboxContext>()
 			if (read === undefined && starred === undefined) {
 				return apiError(c, 400, "bad_request", "Provide read and/or starred");
 			}
-			const result = await toolMarkEmailRead(c.env, c.req.param("mailboxId")!, c.req.param("id")!, read, starred);
+			const result = await toolMarkEmailRead(c.env, c.req.param("mailboxId")!, c.req.param("id")!, read, starred, true);
 			return result.email ? c.json(result.email) : apiError(c, 404, "not_found", "Email not found");
 		},
 	)
