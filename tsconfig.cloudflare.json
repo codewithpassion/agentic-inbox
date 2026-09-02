@@ -13,7 +13,11 @@
     "composite": true,
     "strict": true,
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
-    "types": ["vite/client", "@cloudflare/workers-types/experimental"],
+    "types": [
+      "vite/client",
+      "@cloudflare/workers-types/experimental",
+      "./node_modules/@cloudflare/vitest-pool-workers/types/cloudflare-test.d.ts"
+    ],
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
