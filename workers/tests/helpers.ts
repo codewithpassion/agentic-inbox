@@ -7,6 +7,7 @@ import { Hono } from "hono";
 import { app as apiApp } from "../index";
 import { authMiddleware } from "../lib/auth";
 import type { MailboxContext } from "../lib/mailbox";
+import { EmailMCP, mcpContextWithPrincipal } from "../mcp";
 import type { Env } from "../types";
 
 /**
@@ -15,7 +16,13 @@ import type { Env } from "../types";
  * request passes through principal resolution, then the API sub-app
  * handles /api/*.
  */
-const authedApiApp = new Hono<MailboxContext>().use("*", authMiddleware).route("/", apiApp);
+const mcpHandler = EmailMCP.serve("/mcp", { binding: "EMAIL_MCP" });
+
+const authedApiApp = new Hono<MailboxContext>()
+	.use("*", authMiddleware)
+	.all("/mcp", (c) => mcpHandler.fetch(c.req.raw, c.env, mcpContextWithPrincipal(c.var.principal)))
+	.all("/mcp/*", (c) => mcpHandler.fetch(c.req.raw, c.env, mcpContextWithPrincipal(c.var.principal)))
+	.route("/", apiApp);
 
 const testEnv = env as unknown as Env;
 const testCtx = createExecutionContext();
