@@ -164,7 +164,7 @@ export async function toolDraftReply(
 	if (params.runVerifyDraft) {
 		const sanitized = await verifyDraft(env.AI, processedBody);
 		if (!sanitized) {
-			return { error: "Draft verification failed — body could not be verified. Please try again." };
+			return { error: "Draft verification failed: body could not be verified. Please try again." };
 		}
 		processedBody = sanitized;
 	}
@@ -248,7 +248,7 @@ export async function toolDraftEmail(
 	if (params.runVerifyDraft) {
 		const sanitized = await verifyDraft(env.AI, processedBody);
 		if (!sanitized) {
-			return { error: "Draft verification failed — body could not be verified. Please try again." };
+			return { error: "Draft verification failed: body could not be verified. Please try again." };
 		}
 		processedBody = sanitized;
 	}
@@ -312,11 +312,19 @@ export async function toolUpdateDraft(
 		to?: string;
 		subject?: string;
 		bodyHtml?: string;
-		/** Run the AI verifier over the new body (default true, MCP behaviour). */
+		/** Run the AI verifier over the new body. Opt-in per D3. */
 		runVerifyDraft?: boolean;
 	},
 ): Promise<
-	| { status: string; newDraftId: string; oldDraftId: string; message: string }
+	| {
+			status: "draft_updated";
+			newDraftId: string;
+			oldDraftId: string;
+			date: string;
+			subject: string;
+			recipient: string;
+			message: string;
+	  }
 	| { error: string }
 > {
 	const stub = getMailboxStub(env, mailboxId);
@@ -328,11 +336,14 @@ export async function toolUpdateDraft(
 
 	// Verify the body BEFORE deleting the old draft to prevent data loss
 	const newDraftId = crypto.randomUUID();
+	const date = new Date().toISOString();
+	const subject = params.subject ?? oldDraft.subject;
+	const recipient = (params.to ?? oldDraft.recipient).toLowerCase();
 	const rawBody = params.bodyHtml ?? oldDraft.body ?? "";
-	const verifiedBody = params.runVerifyDraft === false ? rawBody : await verifyDraft(env.AI, rawBody);
+	const verifiedBody = params.runVerifyDraft ? await verifyDraft(env.AI, rawBody) : rawBody;
 
 	if (!verifiedBody) {
-		return { error: "Draft verification failed — keeping existing draft unchanged. Please try again." };
+		return { error: "Draft verification failed: keeping existing draft unchanged. Please try again." };
 	}
 
 	await stub.deleteEmail(params.draftId);
@@ -340,12 +351,12 @@ export async function toolUpdateDraft(
 		Folders.DRAFT,
 		{
 			id: newDraftId,
-			subject: params.subject ?? oldDraft.subject,
+			subject,
 			sender: mailboxId.toLowerCase(),
-			recipient: (params.to ?? oldDraft.recipient).toLowerCase(),
+			recipient,
 			cc: oldDraft.cc ?? null,
 			bcc: oldDraft.bcc ?? null,
-			date: new Date().toISOString(),
+			date,
 			body: verifiedBody,
 			in_reply_to: oldDraft.in_reply_to || null,
 			email_references: oldDraft.email_references || null,
@@ -358,6 +369,9 @@ export async function toolUpdateDraft(
 		status: "draft_updated",
 		newDraftId,
 		oldDraftId: params.draftId,
+		date,
+		subject,
+		recipient,
 		message: "Draft updated in Drafts folder.",
 	};
 }
@@ -375,10 +389,14 @@ export async function toolMarkEmailRead(
 	emailId: string,
 	read: boolean | undefined,
 	starred?: boolean,
+	/** REST also wants the updated row; MCP keeps the small ack. */
+	includeEmail?: boolean,
 ) {
 	const stub = getMailboxStub(env, mailboxId);
 	const email = await stub.updateEmail(emailId, { read, starred });
-	return { status: "updated", emailId, read: read ?? false, email };
+	return includeEmail
+		? { status: "updated", emailId, read: read ?? false, email }
+		: { status: "updated", emailId, read: read ?? false };
 }
 
 // ── move_email ─────────────────────────────────────────────────────
@@ -506,7 +524,7 @@ export async function toolSendReply(
 	if (params.verify) {
 		const sanitized = await verifyDraft(env.AI, body);
 		if (!sanitized) {
-			return { error: "Draft verification failed — refusing to send unverified content. Please try again.", code: "verification_failed" };
+			return { error: "Draft verification failed: refusing to send unverified content. Please try again.", code: "verification_failed" };
 		}
 		body = sanitized;
 	}
@@ -635,7 +653,7 @@ export async function toolSendEmail(
 	if (params.verify) {
 		const sanitized = await verifyDraft(env.AI, body);
 		if (!sanitized) {
-			return { error: "Draft verification failed — refusing to send unverified content. Please try again.", code: "verification_failed" };
+			return { error: "Draft verification failed: refusing to send unverified content. Please try again.", code: "verification_failed" };
 		}
 		finalBody = sanitized;
 	}

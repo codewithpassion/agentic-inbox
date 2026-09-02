@@ -7,6 +7,7 @@ import { describeRoute } from "hono-openapi";
 import { resolver, validator } from "hono-openapi/zod";
 import { z } from "zod";
 import { apiError, validationErrorHook } from "../lib/errors";
+import { verifyDraft } from "../lib/ai";
 import { toolSendReply, type ToolErrorCode } from "../lib/tools";
 import type { MailboxContext } from "../lib/mailbox";
 import { sendEmail } from "../email-sender";
@@ -89,7 +90,7 @@ export const replyForwardRoutes = new Hono<MailboxContext>()
 		async (c) => {
 			const mailboxId = c.req.valid("param").mailboxId;
 			const id = c.req.valid("param").id;
-			const { to, cc, bcc, from, subject, html, text, attachments } = c.req.valid("json");
+			const { to, cc, bcc, from, subject, html, text, attachments, verify } = c.req.valid("json");
 
 			const stub = c.var.mailboxStub;
 			const rawOriginal = (await stub.getEmail(id)) as EmailFull | null;
@@ -115,6 +116,15 @@ export const replyForwardRoutes = new Hono<MailboxContext>()
 				return apiError(c, 429, "rate_limited", rateLimitError);
 			}
 
+			let body = html || text || "";
+			if (verify) {
+				const sanitized = await verifyDraft(c.env.AI, body);
+				if (!sanitized) {
+					return apiError(c, 400, "verification_failed", "Draft verification failed: refusing to send unverified content. Please try again.");
+				}
+				body = sanitized;
+			}
+
 			const attachmentData = await storeAttachments(c.env.BUCKET, messageId, attachments);
 
 			await stub.createEmail(
@@ -127,7 +137,7 @@ export const replyForwardRoutes = new Hono<MailboxContext>()
 					cc: cc ? (Array.isArray(cc) ? cc.join(", ") : cc).toLowerCase() : null,
 					bcc: bcc ? (Array.isArray(bcc) ? bcc.join(", ") : bcc).toLowerCase() : null,
 					date: new Date().toISOString(),
-					body: html || text || "",
+					body,
 					in_reply_to: null,
 					email_references: null,
 					thread_id: messageId,
@@ -152,8 +162,8 @@ export const replyForwardRoutes = new Hono<MailboxContext>()
 					bcc,
 					from,
 					subject,
-					html,
-					text,
+					html: html ? body : undefined,
+					text: text && !html ? body : undefined,
 					attachments: attachments?.map((att) => ({
 						content: att.content,
 						filename: att.filename,

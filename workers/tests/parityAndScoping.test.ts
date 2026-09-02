@@ -109,10 +109,12 @@ describe("parity endpoints", () => {
 		});
 		const { id: oldId } = (await create.json()) as { id: string };
 
+		// Body is longer than verifyDraft's 20-char skip threshold: without
+		// verify the stored body must be verbatim, proving the AI pass is opt-in.
 		const patch = await fetchApi(`/api/v1/mailboxes/${MAILBOX}/drafts/${oldId}`, {
 			method: "PATCH",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ subject: "After", body: "new body" }),
+			body: JSON.stringify({ subject: "After", body: "an updated draft body long enough to be verified" }),
 		});
 		expect(patch.status).toBe(200);
 		const { id: newId } = (await patch.json()) as { id: string };
@@ -122,7 +124,7 @@ describe("parity endpoints", () => {
 		expect(await stub.getEmail(oldId)).toBeNull();
 		const updated = await stub.getEmail(newId);
 		expect(updated!.subject).toBe("After");
-		expect(updated!.body).toBe("new body");
+		expect(updated!.body).toBe("an updated draft body long enough to be verified");
 		// Recipient carries over when omitted
 		expect(updated!.recipient).toBe("x@example.com");
 	});

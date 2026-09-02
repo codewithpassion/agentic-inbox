@@ -46,6 +46,7 @@ export const draftRoutes = new Hono<MailboxContext>()
 					description: "Draft created",
 					content: { "application/json": { schema: resolver(DraftResponseSchema) } },
 				},
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
 		validator("json", DraftBody, validationErrorHook),
@@ -53,8 +54,9 @@ export const draftRoutes = new Hono<MailboxContext>()
 			const mailboxId = c.req.param("mailboxId")!;
 			const { to, cc, bcc, subject, body, in_reply_to, thread_id, draft_id, verify } = c.req.valid("json");
 			const stub = c.var.mailboxStub;
-			if (draft_id) await stub.deleteEmail(draft_id); // not atomic — create-then-delete would be safer
 
+			// Create the new draft first and only delete the replaced one on
+			// success, so a failed verification cannot lose the old draft.
 			const result = await toolDraftEmail(c.env, mailboxId, {
 				to,
 				cc,
@@ -68,6 +70,8 @@ export const draftRoutes = new Hono<MailboxContext>()
 			if ("error" in result) {
 				return c.json({ error: { code: "verification_failed", message: result.error } }, 400);
 			}
+			if (draft_id) await stub.deleteEmail(draft_id);
+
 			return c.json(
 				{
 					id: result.draftId,
@@ -106,7 +110,13 @@ export const draftRoutes = new Hono<MailboxContext>()
 				runVerifyDraft: verify,
 			});
 			if ("error" in result) return apiError(c, 404, "not_found", result.error);
-			return c.json({ id: result.newDraftId, status: "draft_updated", old_draft_id: result.oldDraftId });
+			return c.json({
+				id: result.newDraftId,
+				status: result.status,
+				subject: result.subject,
+				recipient: result.recipient,
+				date: result.date,
+			});
 		},
 	)
 	.delete(
