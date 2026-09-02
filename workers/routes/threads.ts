@@ -43,6 +43,7 @@ export const threadRoutes = new Hono<MailboxContext>()
 					description: "Marked read",
 					content: { "application/json": { schema: resolver(StatusResponseSchema) } },
 				},
+				404: { description: "Mailbox not found", content: { "application/json": { schema: resolver(ApiErrorSchema) } } },
 			},
 		}),
 		validator("param", THREAD_ID_PARAM, validationErrorHook),

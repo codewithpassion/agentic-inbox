@@ -21,49 +21,25 @@
 												{
 													"type": "object",
 													"properties": {
-														"kind": {
-															"type": "string",
-															"const": "access"
-														},
-														"email": {
-															"type": "string"
-														}
+														"kind": { "type": "string", "const": "access" },
+														"email": { "type": "string" }
 													},
 													"required": ["kind", "email"]
 												},
 												{
 													"type": "object",
 													"properties": {
-														"kind": {
-															"type": "string",
-															"const": "api_key"
-														},
-														"keyId": {
-															"type": "string"
-														},
-														"name": {
-															"type": "string"
-														},
-														"mailboxes": {
-															"type": ["array", "null"],
-															"items": {
-																"type": "string"
-															}
-														},
-														"keyPrefix": {
-															"type": "string"
-														}
+														"kind": { "type": "string", "const": "api_key" },
+														"keyId": { "type": "string" },
+														"name": { "type": "string" },
+														"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+														"keyPrefix": { "type": "string" }
 													},
 													"required": ["kind", "keyId", "name", "mailboxes", "keyPrefix"]
 												},
 												{
 													"type": "object",
-													"properties": {
-														"kind": {
-															"type": "string",
-															"const": "dev"
-														}
-													},
+													"properties": { "kind": { "type": "string", "const": "dev" } },
 													"required": ["kind"]
 												}
 											]
@@ -95,36 +71,15 @@
 											"items": {
 												"type": "object",
 												"properties": {
-													"id": {
-														"type": "string"
-													},
-													"name": {
-														"type": "string"
-													},
-													"key_prefix": {
-														"type": "string"
-													},
-													"mailboxes": {
-														"type": ["array", "null"],
-														"items": {
-															"type": "string"
-														}
-													},
-													"created_at": {
-														"type": "string"
-													},
-													"created_by": {
-														"type": ["string", "null"]
-													},
-													"expires_at": {
-														"type": ["string", "null"]
-													},
-													"last_used_at": {
-														"type": ["string", "null"]
-													},
-													"revoked_at": {
-														"type": ["string", "null"]
-													}
+													"id": { "type": "string" },
+													"name": { "type": "string" },
+													"key_prefix": { "type": "string" },
+													"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+													"created_at": { "type": "string" },
+													"created_by": { "type": ["string", "null"] },
+													"expires_at": { "type": ["string", "null"] },
+													"last_used_at": { "type": ["string", "null"] },
+													"revoked_at": { "type": ["string", "null"] }
 												},
 												"required": [
 													"id",
@@ -154,14 +109,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -187,36 +135,15 @@
 										"key": {
 											"type": "object",
 											"properties": {
-												"id": {
-													"type": "string"
-												},
-												"name": {
-													"type": "string"
-												},
-												"key_prefix": {
-													"type": "string"
-												},
-												"mailboxes": {
-													"type": ["array", "null"],
-													"items": {
-														"type": "string"
-													}
-												},
-												"created_at": {
-													"type": "string"
-												},
-												"created_by": {
-													"type": ["string", "null"]
-												},
-												"expires_at": {
-													"type": ["string", "null"]
-												},
-												"last_used_at": {
-													"type": ["string", "null"]
-												},
-												"revoked_at": {
-													"type": ["string", "null"]
-												}
+												"id": { "type": "string" },
+												"name": { "type": "string" },
+												"key_prefix": { "type": "string" },
+												"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+												"created_at": { "type": "string" },
+												"created_by": { "type": ["string", "null"] },
+												"expires_at": { "type": ["string", "null"] },
+												"last_used_at": { "type": ["string", "null"] },
+												"revoked_at": { "type": ["string", "null"] }
 											},
 											"required": [
 												"id",
@@ -230,9 +157,7 @@
 												"revoked_at"
 											]
 										},
-										"secret": {
-											"type": "string"
-										}
+										"secret": { "type": "string" }
 									},
 									"required": ["key", "secret"]
 								}
@@ -248,14 +173,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -274,20 +192,9 @@
 							"schema": {
 								"type": "object",
 								"properties": {
-									"name": {
-										"type": "string",
-										"minLength": 1
-									},
-									"expires_at": {
-										"type": ["string", "null"],
-										"format": "date-time"
-									},
-									"mailboxes": {
-										"type": ["array", "null"],
-										"items": {
-											"type": "string"
-										}
-									}
+									"name": { "type": "string", "minLength": 1 },
+									"expires_at": { "type": ["string", "null"], "format": "date-time" },
+									"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } }
 								},
 								"required": ["name"]
 							}
@@ -309,36 +216,15 @@
 										"key": {
 											"type": "object",
 											"properties": {
-												"id": {
-													"type": "string"
-												},
-												"name": {
-													"type": "string"
-												},
-												"key_prefix": {
-													"type": "string"
-												},
-												"mailboxes": {
-													"type": ["array", "null"],
-													"items": {
-														"type": "string"
-													}
-												},
-												"created_at": {
-													"type": "string"
-												},
-												"created_by": {
-													"type": ["string", "null"]
-												},
-												"expires_at": {
-													"type": ["string", "null"]
-												},
-												"last_used_at": {
-													"type": ["string", "null"]
-												},
-												"revoked_at": {
-													"type": ["string", "null"]
-												}
+												"id": { "type": "string" },
+												"name": { "type": "string" },
+												"key_prefix": { "type": "string" },
+												"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+												"created_at": { "type": "string" },
+												"created_by": { "type": ["string", "null"] },
+												"expires_at": { "type": ["string", "null"] },
+												"last_used_at": { "type": ["string", "null"] },
+												"revoked_at": { "type": ["string", "null"] }
 											},
 											"required": [
 												"id",
@@ -367,14 +253,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -392,14 +271,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -410,16 +282,7 @@
 					}
 				},
 				"operationId": "patchApiV1Api-keysById",
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "id",
-						"required": true
-					}
-				],
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "id", "required": true }],
 				"description": "Rename a key, change its expiry, or change its mailbox scope (null clears a field).",
 				"requestBody": {
 					"content": {
@@ -427,20 +290,9 @@
 							"schema": {
 								"type": "object",
 								"properties": {
-									"name": {
-										"type": "string",
-										"minLength": 1
-									},
-									"expires_at": {
-										"type": ["string", "null"],
-										"format": "date-time"
-									},
-									"mailboxes": {
-										"type": ["array", "null"],
-										"items": {
-											"type": "string"
-										}
-									}
+									"name": { "type": "string", "minLength": 1 },
+									"expires_at": { "type": ["string", "null"], "format": "date-time" },
+									"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } }
 								}
 							}
 						}
@@ -449,9 +301,7 @@
 			},
 			"delete": {
 				"responses": {
-					"204": {
-						"description": "Deleted"
-					},
+					"204": { "description": "Deleted" },
 					"403": {
 						"description": "API keys cannot manage keys",
 						"content": {
@@ -461,14 +311,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -486,14 +329,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -504,16 +340,7 @@
 					}
 				},
 				"operationId": "deleteApiV1Api-keysById",
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "id",
-						"required": true
-					}
-				],
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "id", "required": true }],
 				"description": "Delete a key permanently. Requests using it stop working immediately."
 			}
 		},
@@ -530,36 +357,15 @@
 										"key": {
 											"type": "object",
 											"properties": {
-												"id": {
-													"type": "string"
-												},
-												"name": {
-													"type": "string"
-												},
-												"key_prefix": {
-													"type": "string"
-												},
-												"mailboxes": {
-													"type": ["array", "null"],
-													"items": {
-														"type": "string"
-													}
-												},
-												"created_at": {
-													"type": "string"
-												},
-												"created_by": {
-													"type": ["string", "null"]
-												},
-												"expires_at": {
-													"type": ["string", "null"]
-												},
-												"last_used_at": {
-													"type": ["string", "null"]
-												},
-												"revoked_at": {
-													"type": ["string", "null"]
-												}
+												"id": { "type": "string" },
+												"name": { "type": "string" },
+												"key_prefix": { "type": "string" },
+												"mailboxes": { "type": ["array", "null"], "items": { "type": "string" } },
+												"created_at": { "type": "string" },
+												"created_by": { "type": ["string", "null"] },
+												"expires_at": { "type": ["string", "null"] },
+												"last_used_at": { "type": ["string", "null"] },
+												"revoked_at": { "type": ["string", "null"] }
 											},
 											"required": [
 												"id",
@@ -588,14 +394,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -613,14 +412,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -631,16 +423,7 @@
 					}
 				},
 				"operationId": "postApiV1Api-keysByIdRevoke",
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "id",
-						"required": true
-					}
-				],
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "id", "required": true }],
 				"description": "Revoke a key. Verification fails immediately; the record stays for auditing."
 			}
 		},
@@ -654,18 +437,8 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"domains": {
-											"type": "array",
-											"items": {
-												"type": "string"
-											}
-										},
-										"emailAddresses": {
-											"type": "array",
-											"items": {
-												"type": "string"
-											}
-										}
+										"domains": { "type": "array", "items": { "type": "string" } },
+										"emailAddresses": { "type": "array", "items": { "type": "string" } }
 									},
 									"required": ["domains", "emailAddresses"]
 								}
@@ -690,19 +463,10 @@
 									"items": {
 										"type": "object",
 										"properties": {
-											"id": {
-												"type": "string"
-											},
-											"name": {
-												"type": "string"
-											},
-											"email": {
-												"type": "string"
-											},
-											"settings": {
-												"type": "object",
-												"additionalProperties": {}
-											}
+											"id": { "type": "string" },
+											"name": { "type": "string" },
+											"email": { "type": "string" },
+											"settings": { "type": "object", "additionalProperties": {} }
 										},
 										"required": ["id", "name"]
 									}
@@ -724,19 +488,10 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"name": {
-											"type": "string"
-										},
-										"email": {
-											"type": "string"
-										},
-										"settings": {
-											"type": "object",
-											"additionalProperties": {}
-										}
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"email": { "type": "string" },
+										"settings": { "type": "object", "additionalProperties": {} }
 									},
 									"required": ["id", "name"]
 								}
@@ -752,14 +507,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -777,14 +525,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -803,18 +544,9 @@
 							"schema": {
 								"type": "object",
 								"properties": {
-									"email": {
-										"type": "string",
-										"format": "email"
-									},
-									"name": {
-										"type": "string",
-										"minLength": 1
-									},
-									"settings": {
-										"type": "object",
-										"additionalProperties": {}
-									}
+									"email": { "type": "string", "format": "email" },
+									"name": { "type": "string", "minLength": 1 },
+									"settings": { "type": "object", "additionalProperties": {} }
 								},
 								"required": ["email", "name"]
 							}
@@ -833,19 +565,10 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"name": {
-											"type": "string"
-										},
-										"email": {
-											"type": "string"
-										},
-										"settings": {
-											"type": "object",
-											"additionalProperties": {}
-										}
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"email": { "type": "string" },
+										"settings": { "type": "object", "additionalProperties": {} }
 									},
 									"required": ["id", "name"]
 								}
@@ -861,14 +584,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -879,16 +595,7 @@
 					}
 				},
 				"operationId": "getApiV1MailboxesByMailboxId",
-				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
-				],
+				"parameters": [{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true }],
 				"description": "Get a mailbox with its settings."
 			},
 			"put": {
@@ -900,19 +607,10 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"name": {
-											"type": "string"
-										},
-										"email": {
-											"type": "string"
-										},
-										"settings": {
-											"type": "object",
-											"additionalProperties": {}
-										}
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"email": { "type": "string" },
+										"settings": { "type": "object", "additionalProperties": {} }
 									},
 									"required": ["id", "name"]
 								}
@@ -928,14 +626,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -946,28 +637,14 @@
 					}
 				},
 				"operationId": "putApiV1MailboxesByMailboxId",
-				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
-				],
+				"parameters": [{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true }],
 				"description": "Replace a mailbox's settings object.",
 				"requestBody": {
 					"content": {
 						"application/json": {
 							"schema": {
 								"type": "object",
-								"properties": {
-									"settings": {
-										"type": "object",
-										"additionalProperties": {}
-									}
-								},
+								"properties": { "settings": { "type": "object", "additionalProperties": {} } },
 								"required": ["settings"]
 							}
 						}
@@ -976,9 +653,7 @@
 			},
 			"delete": {
 				"responses": {
-					"204": {
-						"description": "Deleted"
-					},
+					"204": { "description": "Deleted" },
 					"404": {
 						"description": "Not found",
 						"content": {
@@ -988,14 +663,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1006,16 +674,7 @@
 					}
 				},
 				"operationId": "deleteApiV1MailboxesByMailboxId",
-				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
-				],
+				"parameters": [{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true }],
 				"description": "Delete a mailbox's settings object. Mail data in the Durable Object is not removed."
 			}
 		},
@@ -1034,70 +693,30 @@
 											"items": {
 												"type": "object",
 												"properties": {
-													"id": {
-														"type": "string"
-													},
-													"subject": {
-														"type": ["string", "null"]
-													},
-													"sender": {
-														"type": ["string", "null"]
-													},
-													"recipient": {
-														"type": ["string", "null"]
-													},
-													"cc": {
-														"type": ["string", "null"]
-													},
-													"bcc": {
-														"type": ["string", "null"]
-													},
-													"date": {
-														"type": ["string", "null"]
-													},
-													"read": {
-														"type": "boolean"
-													},
-													"starred": {
-														"type": "boolean"
-													},
-													"in_reply_to": {
-														"type": ["string", "null"]
-													},
-													"email_references": {
-														"type": ["string", "null"]
-													},
-													"thread_id": {
-														"type": ["string", "null"]
-													},
-													"folder_id": {
-														"type": ["string", "null"]
-													},
-													"snippet": {
-														"type": ["string", "null"]
-													},
-													"thread_count": {
-														"type": "number"
-													},
-													"thread_unread_count": {
-														"type": "number"
-													},
-													"participants": {
-														"type": "string"
-													},
-													"needs_reply": {
-														"type": "boolean"
-													},
-													"has_draft": {
-														"type": "boolean"
-													}
+													"id": { "type": "string" },
+													"subject": { "type": ["string", "null"] },
+													"sender": { "type": ["string", "null"] },
+													"recipient": { "type": ["string", "null"] },
+													"cc": { "type": ["string", "null"] },
+													"bcc": { "type": ["string", "null"] },
+													"date": { "type": ["string", "null"] },
+													"read": { "type": "boolean" },
+													"starred": { "type": "boolean" },
+													"in_reply_to": { "type": ["string", "null"] },
+													"email_references": { "type": ["string", "null"] },
+													"thread_id": { "type": ["string", "null"] },
+													"folder_id": { "type": ["string", "null"] },
+													"snippet": { "type": ["string", "null"] },
+													"thread_count": { "type": "number" },
+													"thread_unread_count": { "type": "number" },
+													"participants": { "type": "string" },
+													"needs_reply": { "type": "boolean" },
+													"has_draft": { "type": "boolean" }
 												},
 												"required": ["id", "read", "starred"]
 											}
 										},
-										"totalCount": {
-											"type": "number"
-										}
+										"totalCount": { "type": "number" }
 									},
 									"required": ["emails", "totalCount"]
 								}
@@ -1113,14 +732,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1132,69 +744,18 @@
 				},
 				"operationId": "getApiV1MailboxesByMailboxIdEmails",
 				"parameters": [
-					{
-						"in": "query",
-						"name": "folder",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "thread_id",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "threaded",
-						"schema": {
-							"type": "string",
-							"enum": ["true", "false", "1", "0"]
-						}
-					},
-					{
-						"in": "query",
-						"name": "page",
-						"schema": {
-							"type": "integer",
-							"minimum": 1
-						}
-					},
-					{
-						"in": "query",
-						"name": "limit",
-						"schema": {
-							"type": "integer",
-							"minimum": 1,
-							"maximum": 100
-						}
-					},
+					{ "in": "query", "name": "folder", "schema": { "type": "string" } },
+					{ "in": "query", "name": "thread_id", "schema": { "type": "string" } },
+					{ "in": "query", "name": "threaded", "schema": { "type": "string", "enum": ["true", "false", "1", "0"] } },
+					{ "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1 } },
+					{ "in": "query", "name": "limit", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
 					{
 						"in": "query",
 						"name": "sortColumn",
-						"schema": {
-							"type": "string",
-							"enum": ["id", "subject", "sender", "recipient", "date", "read", "starred"]
-						}
+						"schema": { "type": "string", "enum": ["id", "subject", "sender", "recipient", "date", "read", "starred"] }
 					},
-					{
-						"in": "query",
-						"name": "sortDirection",
-						"schema": {
-							"type": "string",
-							"enum": ["ASC", "DESC"]
-						}
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "mailboxId",
-						"required": true
-					}
+					{ "in": "query", "name": "sortDirection", "schema": { "type": "string", "enum": ["ASC", "DESC"] } },
+					{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }
 				],
 				"description": "List emails in a mailbox. Returns { emails, totalCount }. With threaded=true, each item is a conversation with thread_count/participants aggregates."
 			},
@@ -1206,14 +767,7 @@
 							"application/json": {
 								"schema": {
 									"type": "object",
-									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string"
-										}
-									},
+									"properties": { "id": { "type": "string" }, "status": { "type": "string" } },
 									"required": ["id", "status"]
 								}
 							}
@@ -1228,14 +782,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1253,14 +800,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1278,14 +818,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1296,16 +829,7 @@
 					}
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdEmails",
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "mailboxId",
-						"required": true
-					}
-				],
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
 				"description": "Send a new email. Delivery happens asynchronously; the created sent email is returned immediately. Rate limit: 20/hour, 100/day per mailbox.",
 				"requestBody": {
 					"content": {
@@ -1315,122 +839,56 @@
 								"properties": {
 									"to": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"cc": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"bcc": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"from": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
+											{ "type": "string", "format": "email" },
 											{
 												"type": "object",
 												"properties": {
-													"email": {
-														"type": "string",
-														"format": "email"
-													},
-													"name": {
-														"type": "string"
-													}
+													"email": { "type": "string", "format": "email" },
+													"name": { "type": "string" }
 												},
 												"required": ["email", "name"]
 											}
 										]
 									},
-									"subject": {
-										"type": "string"
-									},
-									"html": {
-										"type": "string"
-									},
-									"text": {
-										"type": "string"
-									},
+									"subject": { "type": "string" },
+									"html": { "type": "string" },
+									"text": { "type": "string" },
 									"attachments": {
 										"type": "array",
 										"items": {
 											"type": "object",
 											"properties": {
-												"content": {
-													"type": "string"
-												},
-												"filename": {
-													"type": "string"
-												},
-												"type": {
-													"type": "string"
-												},
-												"disposition": {
-													"type": "string",
-													"enum": ["attachment", "inline"]
-												},
-												"contentId": {
-													"type": "string"
-												}
+												"content": { "type": "string" },
+												"filename": { "type": "string" },
+												"type": { "type": "string" },
+												"disposition": { "type": "string", "enum": ["attachment", "inline"] },
+												"contentId": { "type": "string" }
 											},
 											"required": ["content", "filename", "type", "disposition"]
 										}
 									},
-									"in_reply_to": {
-										"type": "string"
-									},
-									"references": {
-										"type": "array",
-										"items": {
-											"type": "string"
-										}
-									},
-									"thread_id": {
-										"type": "string"
-									},
-									"verify": {
-										"type": "boolean"
-									}
+									"in_reply_to": { "type": "string" },
+									"references": { "type": "array", "items": { "type": "string" } },
+									"thread_id": { "type": "string" },
+									"verify": { "type": "boolean" }
 								},
 								"required": ["to", "from", "subject"]
 							}
@@ -1449,95 +907,39 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"subject": {
-											"type": ["string", "null"]
-										},
-										"sender": {
-											"type": ["string", "null"]
-										},
-										"recipient": {
-											"type": ["string", "null"]
-										},
-										"cc": {
-											"type": ["string", "null"]
-										},
-										"bcc": {
-											"type": ["string", "null"]
-										},
-										"date": {
-											"type": ["string", "null"]
-										},
-										"read": {
-											"type": "boolean"
-										},
-										"starred": {
-											"type": "boolean"
-										},
-										"in_reply_to": {
-											"type": ["string", "null"]
-										},
-										"email_references": {
-											"type": ["string", "null"]
-										},
-										"thread_id": {
-											"type": ["string", "null"]
-										},
-										"folder_id": {
-											"type": ["string", "null"]
-										},
-										"snippet": {
-											"type": ["string", "null"]
-										},
-										"thread_count": {
-											"type": "number"
-										},
-										"thread_unread_count": {
-											"type": "number"
-										},
-										"participants": {
-											"type": "string"
-										},
-										"needs_reply": {
-											"type": "boolean"
-										},
-										"has_draft": {
-											"type": "boolean"
-										},
-										"body": {
-											"type": ["string", "null"]
-										},
-										"message_id": {
-											"type": ["string", "null"]
-										},
-										"raw_headers": {
-											"type": ["string", "null"]
-										},
+										"id": { "type": "string" },
+										"subject": { "type": ["string", "null"] },
+										"sender": { "type": ["string", "null"] },
+										"recipient": { "type": ["string", "null"] },
+										"cc": { "type": ["string", "null"] },
+										"bcc": { "type": ["string", "null"] },
+										"date": { "type": ["string", "null"] },
+										"read": { "type": "boolean" },
+										"starred": { "type": "boolean" },
+										"in_reply_to": { "type": ["string", "null"] },
+										"email_references": { "type": ["string", "null"] },
+										"thread_id": { "type": ["string", "null"] },
+										"folder_id": { "type": ["string", "null"] },
+										"snippet": { "type": ["string", "null"] },
+										"thread_count": { "type": "number" },
+										"thread_unread_count": { "type": "number" },
+										"participants": { "type": "string" },
+										"needs_reply": { "type": "boolean" },
+										"has_draft": { "type": "boolean" },
+										"body": { "type": ["string", "null"] },
+										"message_id": { "type": ["string", "null"] },
+										"raw_headers": { "type": ["string", "null"] },
 										"attachments": {
 											"type": "array",
 											"items": {
 												"type": "object",
 												"properties": {
-													"id": {
-														"type": "string"
-													},
-													"filename": {
-														"type": "string"
-													},
-													"mimetype": {
-														"type": "string"
-													},
-													"size": {
-														"type": "number"
-													},
-													"content_id": {
-														"type": ["string", "null"]
-													},
-													"disposition": {
-														"type": ["string", "null"]
-													}
+													"id": { "type": "string" },
+													"filename": { "type": "string" },
+													"mimetype": { "type": "string" },
+													"size": { "type": "number" },
+													"content_id": { "type": ["string", "null"] },
+													"disposition": { "type": ["string", "null"] }
 												},
 												"required": ["id", "filename", "mimetype", "size"]
 											}
@@ -1557,14 +959,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1576,22 +971,8 @@
 				},
 				"operationId": "getApiV1MailboxesByMailboxIdEmailsById",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Get a single email with body and attachments."
 			},
@@ -1604,95 +985,39 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"subject": {
-											"type": ["string", "null"]
-										},
-										"sender": {
-											"type": ["string", "null"]
-										},
-										"recipient": {
-											"type": ["string", "null"]
-										},
-										"cc": {
-											"type": ["string", "null"]
-										},
-										"bcc": {
-											"type": ["string", "null"]
-										},
-										"date": {
-											"type": ["string", "null"]
-										},
-										"read": {
-											"type": "boolean"
-										},
-										"starred": {
-											"type": "boolean"
-										},
-										"in_reply_to": {
-											"type": ["string", "null"]
-										},
-										"email_references": {
-											"type": ["string", "null"]
-										},
-										"thread_id": {
-											"type": ["string", "null"]
-										},
-										"folder_id": {
-											"type": ["string", "null"]
-										},
-										"snippet": {
-											"type": ["string", "null"]
-										},
-										"thread_count": {
-											"type": "number"
-										},
-										"thread_unread_count": {
-											"type": "number"
-										},
-										"participants": {
-											"type": "string"
-										},
-										"needs_reply": {
-											"type": "boolean"
-										},
-										"has_draft": {
-											"type": "boolean"
-										},
-										"body": {
-											"type": ["string", "null"]
-										},
-										"message_id": {
-											"type": ["string", "null"]
-										},
-										"raw_headers": {
-											"type": ["string", "null"]
-										},
+										"id": { "type": "string" },
+										"subject": { "type": ["string", "null"] },
+										"sender": { "type": ["string", "null"] },
+										"recipient": { "type": ["string", "null"] },
+										"cc": { "type": ["string", "null"] },
+										"bcc": { "type": ["string", "null"] },
+										"date": { "type": ["string", "null"] },
+										"read": { "type": "boolean" },
+										"starred": { "type": "boolean" },
+										"in_reply_to": { "type": ["string", "null"] },
+										"email_references": { "type": ["string", "null"] },
+										"thread_id": { "type": ["string", "null"] },
+										"folder_id": { "type": ["string", "null"] },
+										"snippet": { "type": ["string", "null"] },
+										"thread_count": { "type": "number" },
+										"thread_unread_count": { "type": "number" },
+										"participants": { "type": "string" },
+										"needs_reply": { "type": "boolean" },
+										"has_draft": { "type": "boolean" },
+										"body": { "type": ["string", "null"] },
+										"message_id": { "type": ["string", "null"] },
+										"raw_headers": { "type": ["string", "null"] },
 										"attachments": {
 											"type": "array",
 											"items": {
 												"type": "object",
 												"properties": {
-													"id": {
-														"type": "string"
-													},
-													"filename": {
-														"type": "string"
-													},
-													"mimetype": {
-														"type": "string"
-													},
-													"size": {
-														"type": "number"
-													},
-													"content_id": {
-														"type": ["string", "null"]
-													},
-													"disposition": {
-														"type": ["string", "null"]
-													}
+													"id": { "type": "string" },
+													"filename": { "type": "string" },
+													"mimetype": { "type": "string" },
+													"size": { "type": "number" },
+													"content_id": { "type": ["string", "null"] },
+													"disposition": { "type": ["string", "null"] }
 												},
 												"required": ["id", "filename", "mimetype", "size"]
 											}
@@ -1712,14 +1037,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1731,22 +1049,8 @@
 				},
 				"operationId": "putApiV1MailboxesByMailboxIdEmailsById",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Update an email's read and/or starred flags.",
 				"requestBody": {
@@ -1754,14 +1058,7 @@
 						"application/json": {
 							"schema": {
 								"type": "object",
-								"properties": {
-									"read": {
-										"type": "boolean"
-									},
-									"starred": {
-										"type": "boolean"
-									}
-								}
+								"properties": { "read": { "type": "boolean" }, "starred": { "type": "boolean" } }
 							}
 						}
 					}
@@ -1769,9 +1066,7 @@
 			},
 			"delete": {
 				"responses": {
-					"204": {
-						"description": "Deleted"
-					},
+					"204": { "description": "Deleted" },
 					"404": {
 						"description": "Not found",
 						"content": {
@@ -1781,14 +1076,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1800,22 +1088,8 @@
 				},
 				"operationId": "deleteApiV1MailboxesByMailboxIdEmailsById",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Delete an email and its attachment blobs from R2."
 			}
@@ -1829,12 +1103,7 @@
 							"application/json": {
 								"schema": {
 									"type": "object",
-									"properties": {
-										"status": {
-											"type": "string",
-											"const": "moved"
-										}
-									},
+									"properties": { "status": { "type": "string", "const": "moved" } },
 									"required": ["status"]
 								}
 							}
@@ -1849,14 +1118,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1868,22 +1130,8 @@
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdMove",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Move an email to a folder (folder id or name).",
 				"requestBody": {
@@ -1891,12 +1139,7 @@
 						"application/json": {
 							"schema": {
 								"type": "object",
-								"properties": {
-									"folderId": {
-										"type": "string",
-										"minLength": 1
-									}
-								},
+								"properties": { "folderId": { "type": "string", "minLength": 1 } },
 								"required": ["folderId"]
 							}
 						}
@@ -1914,21 +1157,11 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string"
-										},
-										"subject": {
-											"type": "string"
-										},
-										"recipient": {
-											"type": "string"
-										},
-										"date": {
-											"type": "string"
-										}
+										"id": { "type": "string" },
+										"status": { "type": "string" },
+										"subject": { "type": "string" },
+										"recipient": { "type": "string" },
+										"date": { "type": "string" }
 									},
 									"required": ["id", "status", "subject", "recipient", "date"]
 								}
@@ -1944,14 +1177,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -1963,22 +1189,8 @@
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdDraft-reply",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Draft a reply to an email: saves a draft in the Drafts folder with the quoted original appended and threading set up. Does not send.",
 				"requestBody": {
@@ -1987,20 +1199,10 @@
 							"schema": {
 								"type": "object",
 								"properties": {
-									"to": {
-										"type": "string",
-										"format": "email"
-									},
-									"subject": {
-										"type": "string",
-										"minLength": 1
-									},
-									"body": {
-										"type": "string"
-									},
-									"verify": {
-										"type": "boolean"
-									}
+									"to": { "type": "string", "format": "email" },
+									"subject": { "type": "string", "minLength": 1 },
+									"body": { "type": "string" },
+									"verify": { "type": "boolean" }
 								},
 								"required": ["to", "subject", "body"]
 							}
@@ -2019,21 +1221,11 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string"
-										},
-										"subject": {
-											"type": "string"
-										},
-										"recipient": {
-											"type": "string"
-										},
-										"date": {
-											"type": "string"
-										}
+										"id": { "type": "string" },
+										"status": { "type": "string" },
+										"subject": { "type": "string" },
+										"recipient": { "type": "string" },
+										"date": { "type": "string" }
 									},
 									"required": ["id", "status", "subject", "recipient", "date"]
 								}
@@ -2049,14 +1241,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2067,16 +1252,7 @@
 					}
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdDrafts",
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "mailboxId",
-						"required": true
-					}
-				],
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
 				"description": "Create a draft, or replace an existing draft when draft_id is given (the old draft is deleted and recreated).",
 				"requestBody": {
 					"content": {
@@ -2084,33 +1260,15 @@
 							"schema": {
 								"type": "object",
 								"properties": {
-									"to": {
-										"type": "string"
-									},
-									"cc": {
-										"type": "string"
-									},
-									"bcc": {
-										"type": "string"
-									},
-									"subject": {
-										"type": "string"
-									},
-									"body": {
-										"type": "string"
-									},
-									"in_reply_to": {
-										"type": "string"
-									},
-									"thread_id": {
-										"type": "string"
-									},
-									"draft_id": {
-										"type": "string"
-									},
-									"verify": {
-										"type": "boolean"
-									}
+									"to": { "type": "string" },
+									"cc": { "type": "string" },
+									"bcc": { "type": "string" },
+									"subject": { "type": "string" },
+									"body": { "type": "string" },
+									"in_reply_to": { "type": "string" },
+									"thread_id": { "type": "string" },
+									"draft_id": { "type": "string" },
+									"verify": { "type": "boolean" }
 								},
 								"required": ["body"]
 							}
@@ -2129,21 +1287,11 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string"
-										},
-										"subject": {
-											"type": "string"
-										},
-										"recipient": {
-											"type": "string"
-										},
-										"date": {
-											"type": "string"
-										}
+										"id": { "type": "string" },
+										"status": { "type": "string" },
+										"subject": { "type": "string" },
+										"recipient": { "type": "string" },
+										"date": { "type": "string" }
 									},
 									"required": ["id", "status", "subject", "recipient", "date"]
 								}
@@ -2159,14 +1307,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2178,22 +1319,8 @@
 				},
 				"operationId": "patchApiV1MailboxesByMailboxIdDraftsByDraftId",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "draftId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "draftId", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Update a draft in place: the old draft is deleted and recreated with a new id. Omitted fields carry over from the old draft.",
 				"requestBody": {
@@ -2202,18 +1329,10 @@
 							"schema": {
 								"type": "object",
 								"properties": {
-									"to": {
-										"type": "string"
-									},
-									"subject": {
-										"type": "string"
-									},
-									"body": {
-										"type": "string"
-									},
-									"verify": {
-										"type": "boolean"
-									}
+									"to": { "type": "string" },
+									"subject": { "type": "string" },
+									"body": { "type": "string" },
+									"verify": { "type": "boolean" }
 								}
 							}
 						}
@@ -2222,9 +1341,7 @@
 			},
 			"delete": {
 				"responses": {
-					"204": {
-						"description": "Discarded"
-					},
+					"204": { "description": "Discarded" },
 					"400": {
 						"description": "Not a draft",
 						"content": {
@@ -2234,14 +1351,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2259,14 +1369,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2278,22 +1381,8 @@
 				},
 				"operationId": "deleteApiV1MailboxesByMailboxIdDraftsByDraftId",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "draftId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "draftId", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Discard a draft. Only emails in the Drafts folder can be discarded."
 			}
@@ -2307,14 +1396,7 @@
 							"application/json": {
 								"schema": {
 									"type": "object",
-									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string"
-										}
-									},
+									"properties": { "id": { "type": "string" }, "status": { "type": "string" } },
 									"required": ["id", "status"]
 								}
 							}
@@ -2329,14 +1411,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2354,14 +1429,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2379,14 +1447,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2398,22 +1459,8 @@
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdReply",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Send a reply to an email. Threading headers are derived from the original; delivery is asynchronous. Rate limit: 20/hour, 100/day per mailbox.",
 				"requestBody": {
@@ -2424,122 +1471,56 @@
 								"properties": {
 									"to": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"cc": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"bcc": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"from": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
+											{ "type": "string", "format": "email" },
 											{
 												"type": "object",
 												"properties": {
-													"email": {
-														"type": "string",
-														"format": "email"
-													},
-													"name": {
-														"type": "string"
-													}
+													"email": { "type": "string", "format": "email" },
+													"name": { "type": "string" }
 												},
 												"required": ["email", "name"]
 											}
 										]
 									},
-									"subject": {
-										"type": "string"
-									},
-									"html": {
-										"type": "string"
-									},
-									"text": {
-										"type": "string"
-									},
+									"subject": { "type": "string" },
+									"html": { "type": "string" },
+									"text": { "type": "string" },
 									"attachments": {
 										"type": "array",
 										"items": {
 											"type": "object",
 											"properties": {
-												"content": {
-													"type": "string"
-												},
-												"filename": {
-													"type": "string"
-												},
-												"type": {
-													"type": "string"
-												},
-												"disposition": {
-													"type": "string",
-													"enum": ["attachment", "inline"]
-												},
-												"contentId": {
-													"type": "string"
-												}
+												"content": { "type": "string" },
+												"filename": { "type": "string" },
+												"type": { "type": "string" },
+												"disposition": { "type": "string", "enum": ["attachment", "inline"] },
+												"contentId": { "type": "string" }
 											},
 											"required": ["content", "filename", "type", "disposition"]
 										}
 									},
-									"in_reply_to": {
-										"type": "string"
-									},
-									"references": {
-										"type": "array",
-										"items": {
-											"type": "string"
-										}
-									},
-									"thread_id": {
-										"type": "string"
-									},
-									"verify": {
-										"type": "boolean"
-									}
+									"in_reply_to": { "type": "string" },
+									"references": { "type": "array", "items": { "type": "string" } },
+									"thread_id": { "type": "string" },
+									"verify": { "type": "boolean" }
 								},
 								"required": ["to", "from", "subject"]
 							}
@@ -2557,14 +1538,7 @@
 							"application/json": {
 								"schema": {
 									"type": "object",
-									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"status": {
-											"type": "string"
-										}
-									},
+									"properties": { "id": { "type": "string" }, "status": { "type": "string" } },
 									"required": ["id", "status"]
 								}
 							}
@@ -2579,14 +1553,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2604,14 +1571,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2629,14 +1589,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2648,22 +1601,8 @@
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdEmailsByIdForward",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Forward an email. Delivery is asynchronous. Rate limit: 20/hour, 100/day per mailbox.",
 				"requestBody": {
@@ -2674,122 +1613,56 @@
 								"properties": {
 									"to": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"cc": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"bcc": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
-											{
-												"type": "array",
-												"items": {
-													"type": "string",
-													"format": "email"
-												},
-												"minItems": 1
-											}
+											{ "type": "string", "format": "email" },
+											{ "type": "array", "items": { "type": "string", "format": "email" }, "minItems": 1 }
 										]
 									},
 									"from": {
 										"anyOf": [
-											{
-												"type": "string",
-												"format": "email"
-											},
+											{ "type": "string", "format": "email" },
 											{
 												"type": "object",
 												"properties": {
-													"email": {
-														"type": "string",
-														"format": "email"
-													},
-													"name": {
-														"type": "string"
-													}
+													"email": { "type": "string", "format": "email" },
+													"name": { "type": "string" }
 												},
 												"required": ["email", "name"]
 											}
 										]
 									},
-									"subject": {
-										"type": "string"
-									},
-									"html": {
-										"type": "string"
-									},
-									"text": {
-										"type": "string"
-									},
+									"subject": { "type": "string" },
+									"html": { "type": "string" },
+									"text": { "type": "string" },
 									"attachments": {
 										"type": "array",
 										"items": {
 											"type": "object",
 											"properties": {
-												"content": {
-													"type": "string"
-												},
-												"filename": {
-													"type": "string"
-												},
-												"type": {
-													"type": "string"
-												},
-												"disposition": {
-													"type": "string",
-													"enum": ["attachment", "inline"]
-												},
-												"contentId": {
-													"type": "string"
-												}
+												"content": { "type": "string" },
+												"filename": { "type": "string" },
+												"type": { "type": "string" },
+												"disposition": { "type": "string", "enum": ["attachment", "inline"] },
+												"contentId": { "type": "string" }
 											},
 											"required": ["content", "filename", "type", "disposition"]
 										}
 									},
-									"in_reply_to": {
-										"type": "string"
-									},
-									"references": {
-										"type": "array",
-										"items": {
-											"type": "string"
-										}
-									},
-									"thread_id": {
-										"type": "string"
-									},
-									"verify": {
-										"type": "boolean"
-									}
+									"in_reply_to": { "type": "string" },
+									"references": { "type": "array", "items": { "type": "string" } },
+									"thread_id": { "type": "string" },
+									"verify": { "type": "boolean" }
 								},
 								"required": ["to", "from", "subject"]
 							}
@@ -2810,95 +1683,39 @@
 									"items": {
 										"type": "object",
 										"properties": {
-											"id": {
-												"type": "string"
-											},
-											"subject": {
-												"type": ["string", "null"]
-											},
-											"sender": {
-												"type": ["string", "null"]
-											},
-											"recipient": {
-												"type": ["string", "null"]
-											},
-											"cc": {
-												"type": ["string", "null"]
-											},
-											"bcc": {
-												"type": ["string", "null"]
-											},
-											"date": {
-												"type": ["string", "null"]
-											},
-											"read": {
-												"type": "boolean"
-											},
-											"starred": {
-												"type": "boolean"
-											},
-											"in_reply_to": {
-												"type": ["string", "null"]
-											},
-											"email_references": {
-												"type": ["string", "null"]
-											},
-											"thread_id": {
-												"type": ["string", "null"]
-											},
-											"folder_id": {
-												"type": ["string", "null"]
-											},
-											"snippet": {
-												"type": ["string", "null"]
-											},
-											"thread_count": {
-												"type": "number"
-											},
-											"thread_unread_count": {
-												"type": "number"
-											},
-											"participants": {
-												"type": "string"
-											},
-											"needs_reply": {
-												"type": "boolean"
-											},
-											"has_draft": {
-												"type": "boolean"
-											},
-											"body": {
-												"type": ["string", "null"]
-											},
-											"message_id": {
-												"type": ["string", "null"]
-											},
-											"raw_headers": {
-												"type": ["string", "null"]
-											},
+											"id": { "type": "string" },
+											"subject": { "type": ["string", "null"] },
+											"sender": { "type": ["string", "null"] },
+											"recipient": { "type": ["string", "null"] },
+											"cc": { "type": ["string", "null"] },
+											"bcc": { "type": ["string", "null"] },
+											"date": { "type": ["string", "null"] },
+											"read": { "type": "boolean" },
+											"starred": { "type": "boolean" },
+											"in_reply_to": { "type": ["string", "null"] },
+											"email_references": { "type": ["string", "null"] },
+											"thread_id": { "type": ["string", "null"] },
+											"folder_id": { "type": ["string", "null"] },
+											"snippet": { "type": ["string", "null"] },
+											"thread_count": { "type": "number" },
+											"thread_unread_count": { "type": "number" },
+											"participants": { "type": "string" },
+											"needs_reply": { "type": "boolean" },
+											"has_draft": { "type": "boolean" },
+											"body": { "type": ["string", "null"] },
+											"message_id": { "type": ["string", "null"] },
+											"raw_headers": { "type": ["string", "null"] },
 											"attachments": {
 												"type": "array",
 												"items": {
 													"type": "object",
 													"properties": {
-														"id": {
-															"type": "string"
-														},
-														"filename": {
-															"type": "string"
-														},
-														"mimetype": {
-															"type": "string"
-														},
-														"size": {
-															"type": "number"
-														},
-														"content_id": {
-															"type": ["string", "null"]
-														},
-														"disposition": {
-															"type": ["string", "null"]
-														}
+														"id": { "type": "string" },
+														"filename": { "type": "string" },
+														"mimetype": { "type": "string" },
+														"size": { "type": "number" },
+														"content_id": { "type": ["string", "null"] },
+														"disposition": { "type": ["string", "null"] }
 													},
 													"required": ["id", "filename", "mimetype", "size"]
 												}
@@ -2919,14 +1736,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -2938,22 +1748,8 @@
 				},
 				"operationId": "getApiV1MailboxesByMailboxIdThreadsByThreadId",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "threadId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "threadId", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Get every email in a conversation thread, oldest first, with attachments."
 			}
@@ -2965,14 +1761,24 @@
 						"description": "Marked read",
 						"content": {
 							"application/json": {
+								"schema": { "type": "object", "properties": { "status": { "type": "string" } }, "required": ["status"] }
+							}
+						}
+					},
+					"404": {
+						"description": "Mailbox not found",
+						"content": {
+							"application/json": {
 								"schema": {
 									"type": "object",
 									"properties": {
-										"status": {
-											"type": "string"
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
 										}
 									},
-									"required": ["status"]
+									"required": ["error"]
 								}
 							}
 						}
@@ -2980,22 +1786,8 @@
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdThreadsByThreadIdRead",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "threadId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "threadId", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Mark every email in a thread as read."
 			}
@@ -3012,15 +1804,9 @@
 									"items": {
 										"type": "object",
 										"properties": {
-											"id": {
-												"type": "string"
-											},
-											"name": {
-												"type": "string"
-											},
-											"unreadCount": {
-												"type": "number"
-											}
+											"id": { "type": "string" },
+											"name": { "type": "string" },
+											"unreadCount": { "type": "number" }
 										},
 										"required": ["id", "name", "unreadCount"]
 									}
@@ -3037,14 +1823,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3055,16 +1834,7 @@
 					}
 				},
 				"operationId": "getApiV1MailboxesByMailboxIdFolders",
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "mailboxId",
-						"required": true
-					}
-				],
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
 				"description": "List a mailbox's folders with unread counts."
 			},
 			"post": {
@@ -3076,15 +1846,9 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"name": {
-											"type": "string"
-										},
-										"unreadCount": {
-											"type": "number"
-										}
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"unreadCount": { "type": "number" }
 									},
 									"required": ["id", "name", "unreadCount"]
 								}
@@ -3100,14 +1864,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3125,14 +1882,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3150,14 +1900,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3168,28 +1911,14 @@
 					}
 				},
 				"operationId": "postApiV1MailboxesByMailboxIdFolders",
-				"parameters": [
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "mailboxId",
-						"required": true
-					}
-				],
+				"parameters": [{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }],
 				"description": "Create a folder. The id is the slugified name.",
 				"requestBody": {
 					"content": {
 						"application/json": {
 							"schema": {
 								"type": "object",
-								"properties": {
-									"name": {
-										"type": "string",
-										"minLength": 1
-									}
-								},
+								"properties": { "name": { "type": "string", "minLength": 1 } },
 								"required": ["name"]
 							}
 						}
@@ -3207,15 +1936,9 @@
 								"schema": {
 									"type": "object",
 									"properties": {
-										"id": {
-											"type": "string"
-										},
-										"name": {
-											"type": "string"
-										},
-										"unreadCount": {
-											"type": "number"
-										}
+										"id": { "type": "string" },
+										"name": { "type": "string" },
+										"unreadCount": { "type": "number" }
 									},
 									"required": ["id", "name", "unreadCount"]
 								}
@@ -3231,14 +1954,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3250,22 +1966,8 @@
 				},
 				"operationId": "putApiV1MailboxesByMailboxIdFoldersById",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Rename a folder.",
 				"requestBody": {
@@ -3273,12 +1975,7 @@
 						"application/json": {
 							"schema": {
 								"type": "object",
-								"properties": {
-									"name": {
-										"type": "string",
-										"minLength": 1
-									}
-								},
+								"properties": { "name": { "type": "string", "minLength": 1 } },
 								"required": ["name"]
 							}
 						}
@@ -3287,9 +1984,7 @@
 			},
 			"delete": {
 				"responses": {
-					"204": {
-						"description": "Deleted"
-					},
+					"204": { "description": "Deleted" },
 					"400": {
 						"description": "Folder missing or protected",
 						"content": {
@@ -3299,14 +1994,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3324,14 +2012,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3343,22 +2024,8 @@
 				},
 				"operationId": "deleteApiV1MailboxesByMailboxIdFoldersById",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "id",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "id", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Delete a folder. Built-in folders (inbox, sent, draft, archive, trash) cannot be deleted."
 			}
@@ -3378,70 +2045,30 @@
 											"items": {
 												"type": "object",
 												"properties": {
-													"id": {
-														"type": "string"
-													},
-													"subject": {
-														"type": ["string", "null"]
-													},
-													"sender": {
-														"type": ["string", "null"]
-													},
-													"recipient": {
-														"type": ["string", "null"]
-													},
-													"cc": {
-														"type": ["string", "null"]
-													},
-													"bcc": {
-														"type": ["string", "null"]
-													},
-													"date": {
-														"type": ["string", "null"]
-													},
-													"read": {
-														"type": "boolean"
-													},
-													"starred": {
-														"type": "boolean"
-													},
-													"in_reply_to": {
-														"type": ["string", "null"]
-													},
-													"email_references": {
-														"type": ["string", "null"]
-													},
-													"thread_id": {
-														"type": ["string", "null"]
-													},
-													"folder_id": {
-														"type": ["string", "null"]
-													},
-													"snippet": {
-														"type": ["string", "null"]
-													},
-													"thread_count": {
-														"type": "number"
-													},
-													"thread_unread_count": {
-														"type": "number"
-													},
-													"participants": {
-														"type": "string"
-													},
-													"needs_reply": {
-														"type": "boolean"
-													},
-													"has_draft": {
-														"type": "boolean"
-													}
+													"id": { "type": "string" },
+													"subject": { "type": ["string", "null"] },
+													"sender": { "type": ["string", "null"] },
+													"recipient": { "type": ["string", "null"] },
+													"cc": { "type": ["string", "null"] },
+													"bcc": { "type": ["string", "null"] },
+													"date": { "type": ["string", "null"] },
+													"read": { "type": "boolean" },
+													"starred": { "type": "boolean" },
+													"in_reply_to": { "type": ["string", "null"] },
+													"email_references": { "type": ["string", "null"] },
+													"thread_id": { "type": ["string", "null"] },
+													"folder_id": { "type": ["string", "null"] },
+													"snippet": { "type": ["string", "null"] },
+													"thread_count": { "type": "number" },
+													"thread_unread_count": { "type": "number" },
+													"participants": { "type": "string" },
+													"needs_reply": { "type": "boolean" },
+													"has_draft": { "type": "boolean" }
 												},
 												"required": ["id", "read", "starred"]
 											}
 										},
-										"totalCount": {
-											"type": "number"
-										}
+										"totalCount": { "type": "number" }
 									},
 									"required": ["emails", "totalCount"]
 								}
@@ -3457,14 +2084,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3476,104 +2096,23 @@
 				},
 				"operationId": "getApiV1MailboxesByMailboxIdSearch",
 				"parameters": [
-					{
-						"in": "query",
-						"name": "query",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "folder",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "from",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "to",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "subject",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "date_start",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "date_end",
-						"schema": {
-							"type": "string"
-						}
-					},
-					{
-						"in": "query",
-						"name": "is_read",
-						"schema": {
-							"type": "string",
-							"enum": ["true", "false", "1", "0"]
-						}
-					},
-					{
-						"in": "query",
-						"name": "is_starred",
-						"schema": {
-							"type": "string",
-							"enum": ["true", "false", "1", "0"]
-						}
-					},
+					{ "in": "query", "name": "query", "schema": { "type": "string" } },
+					{ "in": "query", "name": "folder", "schema": { "type": "string" } },
+					{ "in": "query", "name": "from", "schema": { "type": "string" } },
+					{ "in": "query", "name": "to", "schema": { "type": "string" } },
+					{ "in": "query", "name": "subject", "schema": { "type": "string" } },
+					{ "in": "query", "name": "date_start", "schema": { "type": "string" } },
+					{ "in": "query", "name": "date_end", "schema": { "type": "string" } },
+					{ "in": "query", "name": "is_read", "schema": { "type": "string", "enum": ["true", "false", "1", "0"] } },
+					{ "in": "query", "name": "is_starred", "schema": { "type": "string", "enum": ["true", "false", "1", "0"] } },
 					{
 						"in": "query",
 						"name": "has_attachment",
-						"schema": {
-							"type": "string",
-							"enum": ["true", "false", "1", "0"]
-						}
+						"schema": { "type": "string", "enum": ["true", "false", "1", "0"] }
 					},
-					{
-						"in": "query",
-						"name": "page",
-						"schema": {
-							"type": "integer",
-							"minimum": 1
-						}
-					},
-					{
-						"in": "query",
-						"name": "limit",
-						"schema": {
-							"type": "integer",
-							"minimum": 1,
-							"maximum": 100
-						}
-					},
-					{
-						"schema": {
-							"type": "string"
-						},
-						"in": "path",
-						"name": "mailboxId",
-						"required": true
-					}
+					{ "in": "query", "name": "page", "schema": { "type": "integer", "minimum": 1 } },
+					{ "in": "query", "name": "limit", "schema": { "type": "integer", "minimum": 1, "maximum": 100 } },
+					{ "schema": { "type": "string" }, "in": "path", "name": "mailboxId", "required": true }
 				],
 				"description": "Search emails with optional field filters. query matches subject, body, sender, and recipients; dates are inclusive ISO timestamps."
 			}
@@ -3581,16 +2120,7 @@
 		"/api/v1/mailboxes/{mailboxId}/emails/{emailId}/attachments/{attachmentId}": {
 			"get": {
 				"responses": {
-					"200": {
-						"description": "Attachment file",
-						"content": {
-							"*/*": {
-								"schema": {
-									"type": "string"
-								}
-							}
-						}
-					},
+					"200": { "description": "Attachment file", "content": { "*/*": { "schema": { "type": "string" } } } },
 					"404": {
 						"description": "Attachment not found",
 						"content": {
@@ -3600,14 +2130,7 @@
 									"properties": {
 										"error": {
 											"type": "object",
-											"properties": {
-												"code": {
-													"type": "string"
-												},
-												"message": {
-													"type": "string"
-												}
-											},
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
 											"required": ["code", "message"]
 										}
 									},
@@ -3619,36 +2142,13 @@
 				},
 				"operationId": "getApiV1MailboxesByMailboxIdEmailsByEmailIdAttachmentsByAttachmentId",
 				"parameters": [
-					{
-						"in": "path",
-						"name": "mailboxId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "emailId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					},
-					{
-						"in": "path",
-						"name": "attachmentId",
-						"schema": {
-							"type": "string"
-						},
-						"required": true
-					}
+					{ "in": "path", "name": "mailboxId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "emailId", "schema": { "type": "string" }, "required": true },
+					{ "in": "path", "name": "attachmentId", "schema": { "type": "string" }, "required": true }
 				],
 				"description": "Download an attachment. Returns the raw file as a binary download."
 			}
 		}
 	},
-	"components": {
-		"schemas": {}
-	}
+	"components": { "schemas": {} }
 }
