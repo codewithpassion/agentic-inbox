@@ -8,7 +8,7 @@ import { createRequestHandler } from "react-router";
 import { app as apiApp, receiveEmail } from "./index";
 import { EmailMCP } from "./mcp";
 import { authMiddleware } from "./lib/auth";
-import { mcpContextWithPrincipal } from "./mcp";
+import { mcpRequestWithPrincipal } from "./mcp";
 import type { MailboxContext } from "./lib/mailbox";
 import type { Env } from "./types";
 
@@ -44,10 +44,10 @@ app.use("*", authMiddleware);
 const mcpHandler = EmailMCP.serve("/mcp", { binding: "EMAIL_MCP" });
 
 app.all("/mcp", async (c) => {
-	return mcpHandler.fetch(c.req.raw, c.env, mcpContextWithPrincipal(c.var.principal));
+	return mcpHandler.fetch(mcpRequestWithPrincipal(c.req.raw, c.var.principal), c.env, c.executionCtx as ExecutionContext);
 });
 app.all("/mcp/*", async (c) => {
-	return mcpHandler.fetch(c.req.raw, c.env, mcpContextWithPrincipal(c.var.principal));
+	return mcpHandler.fetch(mcpRequestWithPrincipal(c.req.raw, c.var.principal), c.env, c.executionCtx as ExecutionContext);
 });
 
 // Mount the API routes

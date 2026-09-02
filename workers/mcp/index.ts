@@ -20,6 +20,7 @@ import {
 	toolMarkEmailRead,
 	toolMoveEmail,
 } from "../lib/tools";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { Folders, FOLDER_TOOL_DESCRIPTION, MOVE_FOLDER_TOOL_DESCRIPTION } from "../../shared/folders";
 import type { Principal } from "../lib/auth";
 import type { Env } from "../types";
@@ -57,13 +58,47 @@ function mcpResult(result: Record<string, unknown>) {
 
 /**
  * Principal slice passed from workers/app.ts into the MCP Durable Object
- * via agent props. API keys with a mailbox list may only touch those
+ * with every request. API keys with a mailbox list may only touch those
  * mailboxes; Access and dev principals are unrestricted.
  */
 export type McpPrincipalProps = {
 	kind: "access" | "api_key" | "dev";
 	mailboxes?: string[] | null;
 };
+
+/** Header carrying the per-request principal into the MCP Durable Object. */
+const PRINCIPAL_HEADER = "x-inbox-principal";
+
+/**
+ * The library copies props into `this.props` only when a warm Durable
+ * Object starts (partyserver's #ensureInitialized returns early once
+ * started), so scope must NOT be read from this.props: it would be frozen
+ * to whatever principal made the first request of the session. Instead the
+ * principal rides on every request as a header and is dispatched under an
+ * AsyncLocalStorage context, so each tool call sees the scope of its own
+ * request even with concurrent requests on one session.
+ */
+const requestScopeStorage = new AsyncLocalStorage<{ scope: string[] | null }>();
+
+function encodePrincipal(principal: Principal): string {
+	const json = JSON.stringify({ kind: principal.kind, mailboxes: principal.kind === "api_key" ? principal.mailboxes : null });
+	return btoa(String.fromCharCode(...new TextEncoder().encode(json)));
+}
+
+function decodePrincipal(encoded: string): McpPrincipalProps {
+	const json = new TextDecoder().decode(Uint8Array.from(atob(encoded), (c) => c.charCodeAt(0)));
+	return JSON.parse(json) as McpPrincipalProps;
+}
+
+/**
+ * Build the request forwarded to the MCP Durable Object: identical to the
+ * original plus the per-request principal header.
+ */
+export function mcpRequestWithPrincipal(request: Request, principal: Principal): Request {
+	const headers = new Headers(request.headers);
+	headers.set(PRINCIPAL_HEADER, encodePrincipal(principal));
+	return new Request(request, { headers });
+}
 
 /**
  * Build the context the agents streaming handler expects: it reads
@@ -90,10 +125,38 @@ export class EmailMCP extends McpAgent<Env, unknown, McpPrincipalProps> {
 		version: "1.0.0",
 	});
 
-	/** Mailbox scope of the current principal, or null for unrestricted. */
+	/**
+	 * Mailbox scope of the request currently being dispatched, or null for
+	 * unrestricted. Reads the per-request header context first; the
+	 * cold-start props are only a fallback for requests that somehow arrive
+	 * without the principal header.
+	 */
 	private mailboxScope(): string[] | null {
+		const current = requestScopeStorage.getStore();
+		if (current) return current.scope;
 		const principal = this.props;
 		return principal?.kind === "api_key" ? (principal.mailboxes ?? null) : null;
+	}
+
+	/**
+	 * Refresh the enforced scope for every request: the principal header is
+	 * parsed per request and dispatched under the AsyncLocalStorage context
+	 * that verifyMailbox and list_mailboxes read, so a warm session never
+	 * keeps a stale (possibly wider) scope.
+	 */
+	override async fetch(request: Request): Promise<Response> {
+		const header = request.headers.get(PRINCIPAL_HEADER);
+		let scope: string[] | null = null;
+		if (header) {
+			const principal = decodePrincipal(header);
+			scope = principal.kind === "api_key" ? (principal.mailboxes ?? null) : null;
+		} else {
+			// No header (not possible via workers/app.ts): fall back to the
+			// cold-start props rather than silently widening access.
+			const principal = this.props;
+			scope = principal?.kind === "api_key" ? (principal.mailboxes ?? null) : null;
+		}
+		return requestScopeStorage.run({ scope }, () => super.fetch(request));
 	}
 
 	async init() {

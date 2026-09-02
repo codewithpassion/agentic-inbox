@@ -7,7 +7,7 @@ import { Hono } from "hono";
 import { app as apiApp } from "../index";
 import { authMiddleware } from "../lib/auth";
 import type { MailboxContext } from "../lib/mailbox";
-import { EmailMCP, mcpContextWithPrincipal } from "../mcp";
+import { EmailMCP, mcpRequestWithPrincipal } from "../mcp";
 import type { Env } from "../types";
 
 /**
@@ -20,8 +20,8 @@ const mcpHandler = EmailMCP.serve("/mcp", { binding: "EMAIL_MCP" });
 
 const authedApiApp = new Hono<MailboxContext>()
 	.use("*", authMiddleware)
-	.all("/mcp", (c) => mcpHandler.fetch(c.req.raw, c.env, mcpContextWithPrincipal(c.var.principal)))
-	.all("/mcp/*", (c) => mcpHandler.fetch(c.req.raw, c.env, mcpContextWithPrincipal(c.var.principal)))
+	.all("/mcp", (c) => mcpHandler.fetch(mcpRequestWithPrincipal(c.req.raw, c.var.principal), c.env, c.executionCtx as ExecutionContext))
+	.all("/mcp/*", (c) => mcpHandler.fetch(mcpRequestWithPrincipal(c.req.raw, c.var.principal), c.env, c.executionCtx as ExecutionContext))
 	.route("/", apiApp);
 
 const testEnv = env as unknown as Env;

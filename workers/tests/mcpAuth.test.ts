@@ -15,16 +15,10 @@ const JSON_HEADERS = {
 };
 
 /** Minimal MCP streamable-http client: initialize, then call one tool. */
-async function mcpToolCall(
-	secret: string,
-	tool: string,
-	args: Record<string, unknown>,
-): Promise<{ status: number; body: Record<string, unknown> }> {
-	const auth = { Authorization: `Bearer ${secret}` };
-
+async function mcpInitialize(secret: string): Promise<string> {
 	const init = await fetchApi("/mcp", {
 		method: "POST",
-		headers: { ...JSON_HEADERS, ...auth },
+		headers: { ...JSON_HEADERS, Authorization: `Bearer ${secret}` },
 		body: JSON.stringify({
 			jsonrpc: "2.0",
 			id: 1,
@@ -40,20 +34,23 @@ async function mcpToolCall(
 	const sessionId = init.headers.get("mcp-session-id");
 	expect(sessionId).toBeTruthy();
 
-	// The streamable-http transport answers with an SSE stream; pull the
-	// JSON-RPC payload out of the data lines.
-	const initBody = await init.text();
-	expect(initBody).toContain('"serverInfo"');
-
 	await fetchApi("/mcp", {
 		method: "POST",
-		headers: { ...JSON_HEADERS, ...auth, "mcp-session-id": sessionId! },
+		headers: { ...JSON_HEADERS, Authorization: `Bearer ${secret}`, "mcp-session-id": sessionId! },
 		body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
 	});
+	return sessionId!;
+}
 
+async function mcpCall(
+	sessionId: string,
+	secret: string,
+	tool: string,
+	args: Record<string, unknown>,
+): Promise<{ status: number; body: Record<string, unknown> }> {
 	const call = await fetchApi("/mcp", {
 		method: "POST",
-		headers: { ...JSON_HEADERS, ...auth, "mcp-session-id": sessionId! },
+		headers: { ...JSON_HEADERS, Authorization: `Bearer ${secret}`, "mcp-session-id": sessionId },
 		body: JSON.stringify({
 			jsonrpc: "2.0",
 			id: 2,
@@ -64,6 +61,15 @@ async function mcpToolCall(
 	const callBody = await call.text();
 	const dataLine = callBody.split("\n").find((l) => l.startsWith("data: "));
 	return { status: call.status, body: JSON.parse(dataLine?.slice(5).trim() ?? callBody) };
+}
+
+async function mcpToolCall(
+	secret: string,
+	tool: string,
+	args: Record<string, unknown>,
+): Promise<{ status: number; body: Record<string, unknown> }> {
+	const sessionId = await mcpInitialize(secret);
+	return mcpCall(sessionId, secret, tool, args);
 }
 
 describe("API keys on /mcp (D5)", () => {
@@ -152,6 +158,41 @@ describe("scoped keys over /mcp (D4)", () => {
 		expect(content?.isError).toBe(true);
 		expect(content?.content?.[0]?.text).toContain("not found");
 		expect(content?.content?.[0]?.text).not.toContain("other mail");
+	});
+
+	it("re-scopes a warm session per request: scoped key on a session opened by an unrestricted key sees only its scope", async () => {
+		await seedMailbox(DEMO, "demo mail");
+		await seedMailbox(OTHER, "other mail");
+
+		const openSecret = generateApiKey();
+		await getStore().create({
+			name: "open-mcp",
+			keyHash: await hashApiKey(openSecret),
+			keyPrefix: openSecret.slice(0, 12),
+		});
+		const scopedSecret = generateApiKey();
+		await getStore().create({
+			name: "scoped-mcp",
+			keyHash: await hashApiKey(scopedSecret),
+			keyPrefix: scopedSecret.slice(0, 12),
+			mailboxes: [DEMO],
+		});
+
+		// Session opened with the unrestricted key...
+		const sessionId = await mcpInitialize(openSecret);
+
+		// ...then the SAME session id is used by the scoped key: the call must
+		// be scoped to the scoped key's mailboxes, not the session's opener.
+		const listed = await mcpCall(sessionId, scopedSecret, "list_mailboxes", {});
+		const text = (listed.body as { result?: { content?: { text?: string }[] } }).result?.content?.[0]?.text ?? "";
+		const mailboxes = JSON.parse(text) as { id: string }[];
+		expect(mailboxes.map((m) => m.id)).toContain(DEMO);
+		expect(mailboxes.map((m) => m.id)).not.toContain(OTHER);
+
+		const read = await mcpCall(sessionId, scopedSecret, "list_emails", { mailboxId: OTHER, folder: "inbox" });
+		const content = (read.body as { result?: { content?: { text?: string }[]; isError?: boolean } }).result;
+		expect(content?.isError).toBe(true);
+		expect(content?.content?.[0]?.text).toContain("not found");
 	});
 
 	it("an unscoped key still reads its mailboxes", async () => {
