@@ -1,0 +1,4 @@
+node_modules/
+# Compiled binaries from `bun build --compile` (see scripts/build-all.sh)
+bin/
+*.bun

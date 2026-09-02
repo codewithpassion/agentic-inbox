@@ -1,0 +1,67 @@
+#!/usr/bin/env bun
+// Copyright (c) 2026 Cloudflare, Inc.
+// Licensed under the Apache 2.0 license found in the LICENSE file or at:
+//     https://opensource.org/licenses/Apache-2.0
+
+/**
+ * `inbox` — CLI for Agentic Inbox over its REST API.
+ * Human-readable output on a TTY, deterministic JSON in pipes, stable exit
+ * codes for agents. See docs/02-cli-plan.md.
+ */
+import { Command, CommanderError } from "commander";
+import pkg from "../package.json" with { type: "json" };
+import { ApiError } from "./client";
+import { registerAuth } from "./commands/auth";
+import { CliError, unexpectedError } from "./errors";
+import { ExitCode, printError } from "./output";
+
+export function buildProgram(): Command {
+	const program = new Command();
+	program
+		.name("inbox")
+		.description("Drive an Agentic Inbox deployment over its REST API")
+		.version(pkg.version)
+		.option("--url <url>", "Base URL of the deployment (overrides config and INBOX_URL)")
+		.option("--api-key <key>", "API key aik_... (overrides config and INBOX_API_KEY)")
+		.option("--mailbox <id>", "Default mailbox for commands that need one")
+		.option("--format <format>", "Output format: json, table, or plain")
+		.option("--json", "Shorthand for --format json")
+		.option("--profile <name>", "Named profile from the config file")
+		.option("--yes", "Skip confirmation prompts (destructive commands)");
+
+	registerAuth(program);
+
+	return program;
+}
+
+async function main(): Promise<void> {
+	const program = buildProgram();
+	program.exitOverride();
+	try {
+		await program.parseAsync(process.argv);
+	} catch (err) {
+		if (err instanceof CommanderError) {
+			// Help and version exit cleanly; anything else is a usage error.
+			if (err.code === "commander.helpDisplayed" || err.code === "commander.help" || err.code === "commander.version") {
+				process.exit(ExitCode.ok);
+			}
+			printError("usage", err.message);
+			process.exit(ExitCode.usage);
+		}
+		if (err instanceof ApiError) {
+			printError(err.code, err.message);
+			process.exit(err.exitCode);
+		}
+		if (err instanceof CliError) {
+			printError(err.code, err.message);
+			process.exit(err.exitCode);
+		}
+		const fallback = unexpectedError(err);
+		printError(fallback.code, fallback.message);
+		process.exit(ExitCode.unexpected);
+	}
+}
+
+if (import.meta.main) {
+	await main();
+}
