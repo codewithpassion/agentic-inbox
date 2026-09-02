@@ -35,7 +35,13 @@ describe("GET /api/v1/me", () => {
 		await getStore().update(record.id, { mailboxes: ["a@example.com"] });
 		const response = await fetchApi("/api/v1/me", authed(secret));
 		expect(await response.json()).toEqual({
-			principal: { kind: "api_key", keyId: record.id, name: "me-key", mailboxes: ["a@example.com"] },
+			principal: {
+				kind: "api_key",
+				keyId: record.id,
+				name: "me-key",
+				mailboxes: ["a@example.com"],
+				keyPrefix: secret.slice(0, 12),
+			},
 		});
 	});
 });
