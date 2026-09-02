@@ -14,7 +14,7 @@ import { ApiErrorSchema, MailboxSchema } from "../lib/schemas";
 const CreateMailboxBody = z.object({
 	email: z.string().email(),
 	name: z.string().min(1),
-	settings: z.record(z.any()).optional(), // unvalidated — agentSystemPrompt goes straight to AI
+	settings: z.record(z.any()).optional(), // unvalidated: agentSystemPrompt goes straight to AI
 });
 
 const UpdateMailboxBody = z.object({

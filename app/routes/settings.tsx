@@ -98,8 +98,8 @@ export default function SettingsRoute() {
 						</RouterLink>
 					</div>
 					<p className="text-xs text-kumo-subtle mt-2">
-						Create and manage keys for REST API and CLI access. Keys are not
-						tied to a single mailbox.
+						Create and manage keys for REST API and CLI access. Each key can
+						be unrestricted or restricted to specific mailboxes.
 					</p>
 				</div>
 
