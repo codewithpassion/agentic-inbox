@@ -20,11 +20,15 @@ TARGETS=(
 
 mkdir -p bin
 for target in "${TARGETS[@]}"; do
-	echo "building bin/inbox-${target}"
+	# bun appends .exe to the output name for windows targets, so the outfile
+	# already includes it and the release workflow can mv the exact name.
+	out="bin/inbox-${target}"
+	if [ "$target" = "bun-windows-x64" ]; then out="bin/inbox-${target}.exe"; fi
+	echo "building ${out}"
 	bun build ./src/main.ts \
 		--compile \
 		--target="${target}" \
-		--outfile "bin/inbox-${target}"
+		--outfile "${out}"
 done
 
 echo "done:"

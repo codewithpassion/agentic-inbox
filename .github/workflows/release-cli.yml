@@ -50,7 +50,7 @@ jobs:
           mv inbox-bun-linux-arm64 inbox-linux-arm64
           mv inbox-bun-darwin-arm64 inbox-darwin-arm64
           mv inbox-bun-darwin-x64 inbox-darwin-x64
-          mv inbox-bun-windows-x64 inbox-windows-x64.exe
+          mv inbox-bun-windows-x64.exe inbox-windows-x64.exe
 
       - name: Checksums
         working-directory: cli/bin
