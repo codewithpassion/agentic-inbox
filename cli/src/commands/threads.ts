@@ -5,6 +5,7 @@
 import type { Command } from "commander";
 import { getClient, unwrap } from "../client";
 import { makeContext, requireMailbox } from "../context";
+import { printJson } from "../output";
 import { emitList } from "../render";
 
 type ThreadEmail = {
@@ -14,7 +15,7 @@ type ThreadEmail = {
 	date?: string | null;
 };
 
-/** `inbox threads get`. */
+/** `inbox threads get|mark-read`. */
 export function registerThreads(program: Command): void {
 	const threads = program.command("threads").description("Conversation threads");
 
@@ -35,5 +36,20 @@ export function registerThreads(program: Command): void {
 				{ header: "FROM", cell: (m) => m.sender ?? "" },
 				{ header: "SUBJECT", cell: (m) => m.subject ?? "" },
 			]);
+		});
+
+	threads
+		.command("mark-read <threadId>")
+		.description("Mark every message in a thread as read")
+		.action(async function (this: Command, threadId: string) {
+			const ctx = makeContext(this);
+			const client = getClient(ctx.settings);
+			const mailbox = requireMailbox(ctx);
+			const result = unwrap(
+				await client.POST("/api/v1/mailboxes/{mailboxId}/threads/{threadId}/read", {
+					params: { path: { mailboxId: mailbox, threadId } },
+				}),
+			) as { status: string };
+			printJson([{ id: threadId, status: result.status }]);
 		});
 }

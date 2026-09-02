@@ -66,7 +66,7 @@ interface UnwrapResult<TData> {
 
 /** Turn an openapi-fetch result into data, throwing ApiError on failures. */
 export function unwrap<TData>(result: UnwrapResult<TData>): TData {
-	if (result.response.ok && result.data !== undefined) return result.data;
+	if (result.response.ok) return result.data as TData;
 	const status = result.response.status;
 	if (result.error !== null && result.error !== undefined) {
 		const envelope = result.error as { error?: { code?: string; message?: string } };

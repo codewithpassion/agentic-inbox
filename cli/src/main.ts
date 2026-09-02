@@ -13,6 +13,7 @@ import pkg from "../package.json" with { type: "json" };
 import { ApiError } from "./client";
 import { registerAttachments } from "./commands/attachments";
 import { registerAuth } from "./commands/auth";
+import { registerDrafts } from "./commands/drafts";
 import { registerEmails } from "./commands/emails";
 import { registerFolders } from "./commands/folders";
 import { registerMailboxes } from "./commands/mailboxes";
@@ -38,6 +39,7 @@ export function buildProgram(): Command {
 	registerMailboxes(program);
 	registerEmails(program);
 	registerThreads(program);
+	registerDrafts(program);
 	registerFolders(program);
 	registerAttachments(program);
 
