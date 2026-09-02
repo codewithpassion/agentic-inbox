@@ -5,7 +5,7 @@
 /**
  * API key management routes: /api/v1/api-keys and /api/v1/me.
  *
- * Only Access (or dev) principals may manage keys — a key can never manage
+ * Only Access (or dev) principals may manage keys. A key can never manage
  * keys, so a leaked key cannot mint replacements. The management routes are
  * mounted behind `requireAccessPrincipal`.
  */
@@ -52,7 +52,7 @@ function getStore(c: AppContext) {
 	return c.env.API_KEYS.get(c.env.API_KEYS.idFromName("global"));
 }
 
-/** Strip the key hash — responses never include it. */
+/** Strip the key hash: responses never include it. */
 function toPublicKey(record: ApiKeyRecord) {
 	const { id, name, key_prefix, mailboxes, created_at, created_by, expires_at, last_used_at, revoked_at } = record;
 	return { id, name, key_prefix, mailboxes, created_at, created_by, expires_at, last_used_at, revoked_at };

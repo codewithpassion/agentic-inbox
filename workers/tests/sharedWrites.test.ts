@@ -118,7 +118,7 @@ describe("reply: REST route vs toolSendReply", () => {
 			text: "tool reply body",
 			appendQuoted: false,
 			// REST defers delivery; the tool defaults to sync which would need
-			// the EMAIL binding — use the same defer shape without delivery.
+			// the EMAIL binding, so use the same defer shape without delivery.
 			deferDelivery: { waitUntil: () => {} },
 		});
 		expect(tool).toMatchObject({ status: "sent" });

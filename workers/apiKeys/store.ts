@@ -3,7 +3,7 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 /**
- * ApiKeyStore — singleton Durable Object holding every API key.
+ * ApiKeyStore - singleton Durable Object holding every API key.
  *
  * One instance (id from name "global") backs the `API_KEYS` binding. Keys are
  * stored as SHA-256 hashes; the plaintext is returned exactly once at creation.

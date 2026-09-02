@@ -6,7 +6,7 @@
  * Principal resolution for every request.
  *
  * A request is authenticated by, in order:
- *  1. `Authorization: Bearer aik_...` — hashed and verified against the
+ *  1. `Authorization: Bearer aik_...`: hashed and verified against the
  *     ApiKeyStore Durable Object. Runs in dev too so the CLI can be tested
  *     against localhost.
  *  2. The Cloudflare Access JWT from the `cf-access-jwt-assertion` header,

@@ -4,7 +4,7 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 /**
- * `inbox` — CLI for Agentic Inbox over its REST API.
+ * `inbox` - CLI for Agentic Inbox over its REST API.
  * Human-readable output on a TTY, deterministic JSON in pipes, stable exit
  * codes for agents. See docs/02-cli-plan.md.
  */
