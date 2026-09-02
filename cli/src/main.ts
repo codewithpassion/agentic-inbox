@@ -55,34 +55,40 @@ export function buildProgram(): Command {
 	return program;
 }
 
-async function main(): Promise<void> {
+/**
+ * Run one command and return its exit code instead of exiting the process,
+ * so tests (and embedders) can drive the CLI in-process.
+ */
+export async function runCli(argv: string[]): Promise<number> {
 	const program = buildProgram();
 	program.exitOverride();
 	try {
-		await program.parseAsync(process.argv);
+		await program.parseAsync(argv, { from: "user" });
+		return ExitCode.ok;
 	} catch (err) {
 		if (err instanceof CommanderError) {
-			// Help and version exit cleanly; anything else is a usage error.
+			// Help and version output already went to stdout; anything else is
+			// a usage error.
 			if (err.code === "commander.helpDisplayed" || err.code === "commander.help" || err.code === "commander.version") {
-				process.exit(ExitCode.ok);
+				return ExitCode.ok;
 			}
 			printError("usage", err.message);
-			process.exit(ExitCode.usage);
+			return ExitCode.usage;
 		}
 		if (err instanceof ApiError) {
 			printError(err.code, err.message);
-			process.exit(err.exitCode);
+			return err.exitCode;
 		}
 		if (err instanceof CliError) {
 			printError(err.code, err.message);
-			process.exit(err.exitCode);
+			return err.exitCode;
 		}
 		const fallback = unexpectedError(err);
 		printError(fallback.code, fallback.message);
-		process.exit(ExitCode.unexpected);
+		return ExitCode.unexpected;
 	}
 }
 
 if (import.meta.main) {
-	await main();
+	process.exit(await runCli(process.argv.slice(2)));
 }
