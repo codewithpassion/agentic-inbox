@@ -9,7 +9,7 @@ import { z } from "zod";
 import { validationErrorHook } from "../lib/errors";
 import type { MailboxContext } from "../lib/mailbox";
 import { ApiErrorSchema, DraftResponseSchema } from "../lib/schemas";
-import { Folders } from "../../shared/folders";
+import { toolDraftEmail } from "../lib/tools";
 
 const DraftBody = z.object({
 	to: z.string().optional(),
@@ -20,6 +20,8 @@ const DraftBody = z.object({
 	in_reply_to: z.string().optional(),
 	thread_id: z.string().optional(),
 	draft_id: z.string().optional(),
+	/** Opt in to the AI draft verifier over the draft body (D3). */
+	verify: z.boolean().optional(),
 });
 
 export const draftRoutes = new Hono<MailboxContext>().post(
@@ -37,17 +39,32 @@ export const draftRoutes = new Hono<MailboxContext>().post(
 	validator("json", DraftBody, validationErrorHook),
 	async (c) => {
 		const mailboxId = c.req.param("mailboxId")!;
-		const { to, cc, bcc, subject, body, in_reply_to, thread_id, draft_id } = c.req.valid("json");
+		const { to, cc, bcc, subject, body, in_reply_to, thread_id, draft_id, verify } = c.req.valid("json");
 		const stub = c.var.mailboxStub;
 		if (draft_id) await stub.deleteEmail(draft_id); // not atomic — create-then-delete would be safer
-		const messageId = crypto.randomUUID();
-		const now = new Date().toISOString();
-		await stub.createEmail(Folders.DRAFT, {
-			id: messageId, subject: subject || "", sender: mailboxId.toLowerCase(),
-			recipient: (to || "").toLowerCase(), cc: cc?.toLowerCase() || null, bcc: bcc?.toLowerCase() || null,
-			date: now, body, in_reply_to: in_reply_to || null, email_references: null,
-			thread_id: thread_id || in_reply_to || messageId,
-		}, []);
-		return c.json({ id: messageId, status: "draft", subject: subject || "", recipient: to || "", date: now }, 201);
+
+		const result = await toolDraftEmail(c.env, mailboxId, {
+			to,
+			cc,
+			bcc,
+			subject: subject || "",
+			body,
+			in_reply_to,
+			thread_id,
+			runVerifyDraft: verify,
+		});
+		if ("error" in result) {
+			return c.json({ error: { code: "verification_failed", message: result.error } }, 400);
+		}
+		return c.json(
+			{
+				id: result.draftId,
+				status: "draft",
+				subject: subject || "",
+				recipient: to || "",
+				date: result.date,
+			},
+			201,
+		);
 	},
 );

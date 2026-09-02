@@ -22,6 +22,7 @@ export type ApiErrorCode =
 	| "not_found"
 	| "conflict"
 	| "rate_limited"
+	| "verification_failed"
 	| "send_failed"
 	| "internal_error";
 

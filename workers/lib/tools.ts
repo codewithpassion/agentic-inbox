@@ -25,11 +25,26 @@ import {
 	generateMessageId,
 	buildReferencesChain,
 	buildThreadingHeaders,
+	validateSender,
+	SenderValidationError,
 } from "./email-helpers";
 import { verifyDraft } from "./ai";
 import { sendEmail } from "../email-sender";
+import { storeAttachments } from "./attachments";
 import { Folders } from "../../shared/folders";
 import type { Env } from "../types";
+
+/** Base64 attachment as accepted by the send_email binding and R2 storage. */
+export interface OutgoingAttachment {
+	content: string;
+	filename: string;
+	type: string;
+	disposition: "attachment" | "inline";
+	contentId?: string;
+}
+
+/** Error code so REST routes can map tool failures to status codes. */
+export type ToolErrorCode = "bad_request" | "rate_limited" | "not_found" | "verification_failed" | "send_failed";
 
 // ── Type casts for DO methods not on the base stub type ────────────
 export type MailboxSearchFilters = {
@@ -210,10 +225,13 @@ export async function toolDraftEmail(
 	env: Env,
 	mailboxId: string,
 	params: {
-		to: string;
+		to?: string;
 		subject: string;
 		body: string;
+		cc?: string;
+		bcc?: string;
 		isPlainText?: boolean;
+		/** Run the AI verifier over the draft body. Default false per D3. */
 		runVerifyDraft?: boolean;
 		/** Optional in_reply_to for create_draft style */
 		in_reply_to?: string;
@@ -221,7 +239,7 @@ export async function toolDraftEmail(
 		thread_id?: string;
 	},
 ): Promise<
-	| { status: string; draftId: string; threadId?: string; message: string; draft?: Record<string, string> }
+	| { status: string; draftId: string; date: string; threadId?: string; message: string; draft?: Record<string, string> }
 	| { error: string }
 > {
 	const stub = getMailboxStub(env, mailboxId);
@@ -240,6 +258,7 @@ export async function toolDraftEmail(
 	}
 
 	const draftId = crypto.randomUUID();
+	const date = new Date().toISOString();
 
 	// Resolve thread ID
 	let resolvedThreadId = params.thread_id;
@@ -258,7 +277,9 @@ export async function toolDraftEmail(
 			subject: params.subject,
 			sender: mailboxId.toLowerCase(),
 			recipient: (params.to || "").toLowerCase(),
-			date: new Date().toISOString(),
+			cc: params.cc?.toLowerCase() || null,
+			bcc: params.bcc?.toLowerCase() || null,
+			date,
 			body: processedBody,
 			in_reply_to: params.in_reply_to || null,
 			email_references: null,
@@ -270,10 +291,11 @@ export async function toolDraftEmail(
 	return {
 		status: "draft_saved",
 		draftId,
+		date,
 		threadId: resolvedThreadId,
 		message: "Draft saved to Drafts folder. Review it and confirm to send.",
 		draft: {
-			to: params.to,
+			to: params.to || "",
 			subject: params.subject,
 			body: params.isPlainText ? params.body.trim() : processedBody,
 		},
@@ -290,6 +312,8 @@ export async function toolUpdateDraft(
 		to?: string;
 		subject?: string;
 		bodyHtml?: string;
+		/** Run the AI verifier over the new body (default true, MCP behaviour). */
+		runVerifyDraft?: boolean;
 	},
 ): Promise<
 	| { status: string; newDraftId: string; oldDraftId: string; message: string }
@@ -305,7 +329,7 @@ export async function toolUpdateDraft(
 	// Verify the body BEFORE deleting the old draft to prevent data loss
 	const newDraftId = crypto.randomUUID();
 	const rawBody = params.bodyHtml ?? oldDraft.body ?? "";
-	const verifiedBody = await verifyDraft(env.AI, rawBody);
+	const verifiedBody = params.runVerifyDraft === false ? rawBody : await verifyDraft(env.AI, rawBody);
 
 	if (!verifiedBody) {
 		return { error: "Draft verification failed — keeping existing draft unchanged. Please try again." };
@@ -338,15 +362,21 @@ export async function toolUpdateDraft(
 
 // ── mark_email_read ────────────────────────────────────────────────
 
+/**
+ * Update an email's read flag (and optionally starred, for the REST PUT
+ * route which toggles both). Returns the updated email for the REST
+ * response, or null when the email does not exist.
+ */
 export async function toolMarkEmailRead(
 	env: Env,
 	mailboxId: string,
 	emailId: string,
-	read: boolean,
+	read: boolean | undefined,
+	starred?: boolean,
 ) {
 	const stub = getMailboxStub(env, mailboxId);
-	await stub.updateEmail(emailId, { read });
-	return { status: "updated", emailId, read };
+	const email = await stub.updateEmail(emailId, { read, starred });
+	return { status: "updated", emailId, read: read ?? false, email };
 }
 
 // ── move_email ─────────────────────────────────────────────────────
@@ -386,157 +416,286 @@ export async function toolDiscardDraft(
 
 // ── delete_email ───────────────────────────────────────────────────
 
+/**
+ * Delete an email. The REST route passes `bucket` so attachment blobs are
+ * removed from R2 as well; MCP keeps its historical behaviour of only
+ * deleting the DO row.
+ */
 export async function toolDeleteEmail(
 	env: Env,
 	mailboxId: string,
 	emailId: string,
-) {
+	bucket?: R2Bucket,
+): Promise<{ status: "deleted"; emailId: string } | { error: string; emailId: string }> {
 	const stub = getMailboxStub(env, mailboxId);
 	const result = await stub.deleteEmail(emailId);
 	if (result === null) {
 		return { error: "Email not found", emailId };
+	}
+	if (bucket && result.length > 0) {
+		await bucket.delete(result.map((att) => `attachments/${emailId}/${att.id}/${att.filename}`));
 	}
 	return { status: "deleted", emailId };
 }
 
 // ── send_reply ─────────────────────────────────────────────────────
 
+/**
+ * Send a reply to an email, shared by MCP and the REST reply route.
+ *
+ * @param params.verify - Run the AI verifier over the outgoing body.
+ *   Default false per decision D3; the MCP server passes true.
+ * @param params.appendQuoted - Append the quoted original block to the HTML
+ *   body. Default true; the REST route passes false because the composer
+ *   already includes quoted text.
+ * @param params.markThreadRead - Mark the thread read after storing. The
+ *   REST route passes true (matching the UI flow).
+ * @param params.deferDelivery - When given, delivery is deferred via
+ *   waitUntil (REST returns 202 before delivery completes).
+ */
 export async function toolSendReply(
 	env: Env,
 	mailboxId: string,
 	params: {
 		originalEmailId: string;
-		to: string;
+		to: string | string[];
+		from?: string | { email: string; name: string };
+		cc?: string | string[];
+		bcc?: string | string[];
 		subject: string;
-		bodyHtml: string;
+		bodyHtml?: string;
+		text?: string;
+		attachments?: OutgoingAttachment[];
+		verify?: boolean;
+		appendQuoted?: boolean;
+		markThreadRead?: boolean;
+		deferDelivery?: { waitUntil: (promise: Promise<unknown>) => void };
 	},
 ): Promise<
 	| { status: "sent"; messageId: string; message: string }
-	| { error: string }
+	| { error: string; code?: ToolErrorCode }
 > {
 	const stub = getMailboxStub(env, mailboxId);
 
 	// Check send rate limit
 	const rateLimitError = await (stub as unknown as RateLimitStub).checkSendRateLimit();
 	if (rateLimitError) {
-		return { error: rateLimitError };
+		return { error: rateLimitError, code: "rate_limited" };
 	}
 
 	const originalEmail = (await stub.getEmail(params.originalEmailId)) as EmailFull | null;
 	if (!originalEmail) {
-		return { error: "Original email not found" };
+		return { error: "Original email not found", code: "not_found" };
 	}
 
 	const { originalMsgId, references, threadId } = buildReferencesChain(originalEmail);
-	const fromDomain = mailboxId.split("@")[1];
-	if (!fromDomain) throw new Error("Invalid mailbox email address");
+
+	let toStr: string, fromEmail: string, fromDomain: string;
+	try {
+		({ toStr, fromEmail, fromDomain } = validateSender(params.to, params.from ?? mailboxId, mailboxId));
+	} catch (e) {
+		if (e instanceof SenderValidationError) return { error: e.message, code: "bad_request" };
+		throw e;
+	}
+
 	const { messageId, outgoingMessageId } = generateMessageId(fromDomain);
 
-	// Verify and append quoted original message
-	const sanitizedBody = await verifyDraft(env.AI, params.bodyHtml);
-	if (!sanitizedBody) {
-		return { error: "Draft verification failed — refusing to send unverified content. Please try again." };
+	let body = params.bodyHtml || params.text || "";
+	if (params.verify) {
+		const sanitized = await verifyDraft(env.AI, body);
+		if (!sanitized) {
+			return { error: "Draft verification failed — refusing to send unverified content. Please try again.", code: "verification_failed" };
+		}
+		body = sanitized;
 	}
-	const quotedBlock = buildQuotedReplyBlock({
-		date: originalEmail.date,
-		sender: originalEmail.sender || params.to,
-		body: originalEmail.body ?? undefined,
-	});
-	const fullBodyHtml = sanitizedBody + quotedBlock;
+	if (params.appendQuoted !== false && params.bodyHtml) {
+		body += buildQuotedReplyBlock({
+			date: originalEmail.date,
+			sender: originalEmail.sender || toStr,
+			body: originalEmail.body ?? undefined,
+		});
+	}
 
-	try {
-		await sendEmail(env.EMAIL, {
+	const attachmentData = await storeAttachments(env.BUCKET, messageId, params.attachments);
+
+	const ccStr = params.cc ? (Array.isArray(params.cc) ? params.cc.join(", ") : params.cc).toLowerCase() : null;
+	const bccStr = params.bcc ? (Array.isArray(params.bcc) ? params.bcc.join(", ") : params.bcc).toLowerCase() : null;
+
+	const sentEmail = {
+		id: messageId,
+		subject: params.subject,
+		sender: fromEmail,
+		recipient: toStr,
+		cc: ccStr,
+		bcc: bccStr,
+		date: new Date().toISOString(),
+		body,
+		in_reply_to: originalMsgId,
+		email_references: references.length > 0 ? JSON.stringify(references) : null,
+		thread_id: threadId,
+		message_id: outgoingMessageId,
+		raw_headers: JSON.stringify([
+			{ key: "from", value: typeof (params.from ?? mailboxId) === "string" ? (params.from ?? mailboxId) as string : `${(params.from as { email: string; name: string }).name} <${(params.from as { email: string; name: string }).email}>` },
+			{ key: "to", value: Array.isArray(params.to) ? params.to.join(", ") : params.to },
+			...(ccStr ? [{ key: "cc", value: Array.isArray(params.cc) ? params.cc.join(", ") : params.cc }] : []),
+			...(bccStr ? [{ key: "bcc", value: Array.isArray(params.bcc) ? params.bcc.join(", ") : params.bcc }] : []),
+			{ key: "subject", value: params.subject },
+			{ key: "date", value: new Date().toISOString() },
+			{ key: "message-id", value: `<${outgoingMessageId}>` },
+			...(originalMsgId ? [{ key: "in-reply-to", value: `<${originalMsgId}>` }] : []),
+			...(references.length > 0 ? [{ key: "references", value: references.map((r) => `<${r}>`).join(" ") }] : []),
+		]),
+	};
+
+	const deliver = () =>
+		sendEmail(env.EMAIL, {
 			to: params.to,
-			from: mailboxId,
+			cc: params.cc,
+			bcc: params.bcc,
+			from: params.from ?? mailboxId,
 			subject: params.subject,
-			html: fullBodyHtml,
+			html: params.bodyHtml ? body : undefined,
+			text: params.text && !params.bodyHtml ? body : undefined,
+			attachments: params.attachments,
 			headers: buildThreadingHeaders(originalMsgId, references),
 		});
-	} catch (e) {
-		console.error("Email send failed:", (e as Error).message);
-		return { error: `Failed to send reply: ${(e as Error).message}` };
+
+	if (params.deferDelivery) {
+		await stub.createEmail(Folders.SENT, sentEmail, attachmentData);
+		params.deferDelivery.waitUntil(
+			deliver().catch((e) => console.error("Deferred reply delivery failed:", (e as Error).message)),
+		);
+	} else {
+		try {
+			await deliver();
+		} catch (e) {
+			console.error("Email send failed:", (e as Error).message);
+			return { error: `Failed to send reply: ${(e as Error).message}`, code: "send_failed" };
+		}
+		await stub.createEmail(Folders.SENT, sentEmail, attachmentData);
 	}
 
-	await stub.createEmail(
-		Folders.SENT,
-		{
-			id: messageId,
-			subject: params.subject,
-			sender: mailboxId.toLowerCase(),
-			recipient: params.to.toLowerCase(),
-			date: new Date().toISOString(),
-			body: fullBodyHtml,
-			in_reply_to: originalMsgId,
-			email_references:
-				references.length > 0 ? JSON.stringify(references) : null,
-			thread_id: threadId,
-			message_id: outgoingMessageId,
-		},
-		[],
-	);
+	if (params.markThreadRead) {
+		await stub.markThreadRead(threadId);
+	}
 
-	return { status: "sent", messageId, message: `Reply sent to ${params.to}` };
+	return { status: "sent", messageId, message: `Reply sent to ${toStr}` };
 }
 
 // ── send_email ─────────────────────────────────────────────────────
 
+/**
+ * Send a new email, shared by MCP and the REST send route.
+ * See toolSendReply for the verify / deferDelivery options.
+ */
 export async function toolSendEmail(
 	env: Env,
 	mailboxId: string,
 	params: {
-		to: string;
+		to: string | string[];
+		from?: string | { email: string; name: string };
+		cc?: string | string[];
+		bcc?: string | string[];
 		subject: string;
-		bodyHtml: string;
+		html?: string;
+		text?: string;
+		attachments?: OutgoingAttachment[];
+		in_reply_to?: string;
+		references?: string[];
+		thread_id?: string;
+		verify?: boolean;
+		deferDelivery?: { waitUntil: (promise: Promise<unknown>) => void };
 	},
 ): Promise<
 	| { status: "sent"; messageId: string; message: string }
-	| { error: string }
+	| { error: string; code?: ToolErrorCode }
 > {
 	const stub = getMailboxStub(env, mailboxId);
 
 	// Check send rate limit
 	const rateLimitError = await (stub as unknown as RateLimitStub).checkSendRateLimit();
 	if (rateLimitError) {
-		return { error: rateLimitError };
+		return { error: rateLimitError, code: "rate_limited" };
 	}
 
-	const fromDomain = mailboxId.split("@")[1];
-	if (!fromDomain) throw new Error("Invalid mailbox email address");
+	let toStr: string, fromEmail: string, fromDomain: string;
+	try {
+		({ toStr, fromEmail, fromDomain } = validateSender(params.to, params.from ?? mailboxId, mailboxId));
+	} catch (e) {
+		if (e instanceof SenderValidationError) return { error: e.message, code: "bad_request" };
+		throw e;
+	}
+
 	const { messageId, outgoingMessageId } = generateMessageId(fromDomain);
 
-	const sanitizedBody = await verifyDraft(env.AI, params.bodyHtml);
-	if (!sanitizedBody) {
-		return { error: "Draft verification failed — refusing to send unverified content. Please try again." };
+	const body = params.html || params.text || "";
+	let finalBody = body;
+	if (params.verify) {
+		const sanitized = await verifyDraft(env.AI, body);
+		if (!sanitized) {
+			return { error: "Draft verification failed — refusing to send unverified content. Please try again.", code: "verification_failed" };
+		}
+		finalBody = sanitized;
 	}
 
-	try {
-		await sendEmail(env.EMAIL, {
+	const attachmentData = await storeAttachments(env.BUCKET, messageId, params.attachments);
+
+	const ccStr = params.cc ? (Array.isArray(params.cc) ? params.cc.join(", ") : params.cc).toLowerCase() : null;
+	const bccStr = params.bcc ? (Array.isArray(params.bcc) ? params.bcc.join(", ") : params.bcc).toLowerCase() : null;
+
+	const sentEmail = {
+		id: messageId,
+		subject: params.subject,
+		sender: fromEmail,
+		recipient: toStr,
+		cc: ccStr,
+		bcc: bccStr,
+		date: new Date().toISOString(),
+		body: finalBody,
+		in_reply_to: params.in_reply_to || null,
+		email_references: params.references ? JSON.stringify(params.references) : null,
+		thread_id: params.thread_id || params.in_reply_to || messageId,
+		message_id: outgoingMessageId,
+		raw_headers: JSON.stringify([
+			{ key: "from", value: typeof (params.from ?? mailboxId) === "string" ? (params.from ?? mailboxId) as string : `${(params.from as { email: string; name: string }).name} <${(params.from as { email: string; name: string }).email}>` },
+			{ key: "to", value: Array.isArray(params.to) ? params.to.join(", ") : params.to },
+			...(ccStr ? [{ key: "cc", value: Array.isArray(params.cc) ? params.cc.join(", ") : params.cc }] : []),
+			...(bccStr ? [{ key: "bcc", value: Array.isArray(params.bcc) ? params.bcc.join(", ") : params.bcc }] : []),
+			{ key: "subject", value: params.subject },
+			{ key: "date", value: new Date().toISOString() },
+			{ key: "message-id", value: `<${outgoingMessageId}>` },
+		]),
+	};
+
+	const deliver = () =>
+		sendEmail(env.EMAIL, {
 			to: params.to,
-			from: mailboxId,
+			cc: params.cc,
+			bcc: params.bcc,
+			from: params.from ?? mailboxId,
 			subject: params.subject,
-			html: sanitizedBody,
+			html: params.html,
+			text: params.text,
+			attachments: params.attachments,
+			...(params.in_reply_to
+				? { headers: buildThreadingHeaders(params.in_reply_to, params.references || []) }
+				: {}),
 		});
-	} catch (e) {
-		console.error("Email send failed:", (e as Error).message);
-		return { error: `Failed to send email: ${(e as Error).message}` };
+
+	if (params.deferDelivery) {
+		await stub.createEmail(Folders.SENT, sentEmail, attachmentData);
+		params.deferDelivery.waitUntil(
+			deliver().catch((e) => console.error("Deferred email delivery failed:", (e as Error).message)),
+		);
+	} else {
+		try {
+			await deliver();
+		} catch (e) {
+			console.error("Email send failed:", (e as Error).message);
+			return { error: `Failed to send email: ${(e as Error).message}`, code: "send_failed" };
+		}
+		await stub.createEmail(Folders.SENT, sentEmail, attachmentData);
 	}
 
-	await stub.createEmail(
-		Folders.SENT,
-		{
-			id: messageId,
-			subject: params.subject,
-			sender: mailboxId.toLowerCase(),
-			recipient: params.to.toLowerCase(),
-			date: new Date().toISOString(),
-			body: sanitizedBody,
-			in_reply_to: null,
-			email_references: null,
-			thread_id: messageId,
-			message_id: outgoingMessageId,
-		},
-		[],
-	);
-
-	return { status: "sent", messageId, message: `Email sent to ${params.to}` };
+	return { status: "sent", messageId, message: `Email sent to ${toStr}` };
 }

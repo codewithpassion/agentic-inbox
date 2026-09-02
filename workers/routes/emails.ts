@@ -2,19 +2,13 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
-import { Hono } from "hono";
+import { type Context, type Env as HonoEnv, Hono } from "hono";
 import { describeRoute } from "hono-openapi";
 import { resolver, validator } from "hono-openapi/zod";
 import { z } from "zod";
 import { apiError, validationErrorHook } from "../lib/errors";
 import type { MailboxContext } from "../lib/mailbox";
-import {
-	validateSender,
-	SenderValidationError,
-	generateMessageId,
-	buildThreadingHeaders,
-	type MailboxThreadedListReaderStub,
-} from "../lib/email-helpers";
+import type { MailboxThreadedListReaderStub } from "../lib/email-helpers";
 import {
 	ApiErrorSchema,
 	EmailFullSchema,
@@ -24,9 +18,7 @@ import {
 	limitParam,
 	pageParam,
 } from "../lib/schemas";
-import { storeAttachments } from "../lib/attachments";
-import { sendEmail } from "../email-sender";
-import { Folders } from "../../shared/folders";
+import { toolDeleteEmail, toolMarkEmailRead, toolMoveEmail, toolSendEmail, type ToolErrorCode } from "../lib/tools";
 
 const ListEmailsQuery = z.object({
 	folder: z.string().optional(),
@@ -48,6 +40,14 @@ const MoveEmailBody = z.object({
 });
 
 const EMAIL_ID_PARAM = z.object({ mailboxId: z.string(), id: z.string() });
+
+/** Map tool error codes to the REST error envelope. */
+function sendToolError<E extends HonoEnv>(c: Context<E, string>, result: { error: string; code?: ToolErrorCode }) {
+	const status = result.code === "rate_limited" ? 429
+		: result.code === "not_found" ? 404
+		: 400;
+	return apiError(c, status, result.code ?? "bad_request", result.error);
+}
 
 export const emailRoutes = new Hono<MailboxContext>()
 	.get(
@@ -95,48 +95,14 @@ export const emailRoutes = new Hono<MailboxContext>()
 		validator("json", SendEmailRequestSchema, validationErrorHook),
 		async (c) => {
 			const mailboxId = c.req.param("mailboxId")!;
-			const body = c.req.valid("json");
-			const { to, cc, bcc, from, subject, html, text, attachments, in_reply_to, references, thread_id } = body;
-
-			let toStr: string, fromEmail: string, fromDomain: string;
-			try {
-				({ toStr, fromEmail, fromDomain } = validateSender(to, from, mailboxId));
-			} catch (e) {
-				if (e instanceof SenderValidationError) return apiError(c, 400, "bad_request", e.message);
-				throw e;
+			const result = await toolSendEmail(c.env, mailboxId, {
+				...c.req.valid("json"),
+				deferDelivery: c.executionCtx,
+			});
+			if ("error" in result) {
+				return sendToolError(c, result);
 			}
-
-			const { messageId, outgoingMessageId } = generateMessageId(fromDomain);
-			const stub = c.var.mailboxStub;
-			const rateLimitError = await stub.checkSendRateLimit();
-			if (rateLimitError) return apiError(c, 429, "rate_limited", rateLimitError);
-			const attachmentData = await storeAttachments(c.env.BUCKET, messageId, attachments);
-
-			await stub.createEmail(Folders.SENT, {
-				id: messageId, subject, sender: fromEmail, recipient: toStr,
-				cc: cc ? (Array.isArray(cc) ? cc.join(", ") : cc).toLowerCase() : null,
-				bcc: bcc ? (Array.isArray(bcc) ? bcc.join(", ") : bcc).toLowerCase() : null,
-				date: new Date().toISOString(), body: html || text || "",
-				in_reply_to: in_reply_to || null, email_references: references ? JSON.stringify(references) : null,
-				thread_id: thread_id || in_reply_to || messageId, message_id: outgoingMessageId,
-				raw_headers: JSON.stringify([
-					{ key: "from", value: typeof from === "string" ? from : `${from.name} <${from.email}>` },
-					{ key: "to", value: Array.isArray(to) ? to.join(", ") : to },
-					...(cc ? [{ key: "cc", value: Array.isArray(cc) ? cc.join(", ") : cc }] : []),
-					...(bcc ? [{ key: "bcc", value: Array.isArray(bcc) ? bcc.join(", ") : bcc }] : []),
-					{ key: "subject", value: subject }, { key: "date", value: new Date().toISOString() },
-					{ key: "message-id", value: `<${outgoingMessageId}>` },
-				]),
-			}, attachmentData);
-
-			c.executionCtx.waitUntil(
-				sendEmail(c.env.EMAIL, {
-					to, cc, bcc, from, subject, html, text,
-					attachments: attachments?.map((att) => ({ content: att.content, filename: att.filename, type: att.type, disposition: att.disposition || "attachment", contentId: att.contentId })),
-					...(in_reply_to ? { headers: buildThreadingHeaders(in_reply_to, references || []) } : {}),
-				}).catch((e) => console.error("Deferred email delivery failed:", (e as Error).message)),
-			);
-			return c.json({ id: messageId, status: "sent" }, 202);
+			return c.json({ id: result.messageId, status: "sent" }, 202);
 		},
 	)
 	.get(
@@ -168,8 +134,11 @@ export const emailRoutes = new Hono<MailboxContext>()
 		validator("json", UpdateEmailBody, validationErrorHook),
 		async (c) => {
 			const { read, starred } = c.req.valid("json");
-			const email = await c.var.mailboxStub.updateEmail(c.req.valid("param").id, { read, starred });
-			return email ? c.json(email) : apiError(c, 404, "not_found", "Email not found");
+			if (read === undefined && starred === undefined) {
+				return apiError(c, 400, "bad_request", "Provide read and/or starred");
+			}
+			const result = await toolMarkEmailRead(c.env, c.req.param("mailboxId")!, c.req.param("id")!, read, starred);
+			return result.email ? c.json(result.email) : apiError(c, 404, "not_found", "Email not found");
 		},
 	)
 	.delete(
@@ -183,13 +152,10 @@ export const emailRoutes = new Hono<MailboxContext>()
 		}),
 		validator("param", EMAIL_ID_PARAM, validationErrorHook),
 		async (c) => {
-			const id = c.req.valid("param").id;
-			const attachments = await c.var.mailboxStub.deleteEmail(id);
-			if (attachments === null) return apiError(c, 404, "not_found", "Email not found");
-			if (attachments.length > 0) {
-				await c.env.BUCKET.delete(attachments.map((att) => `attachments/${id}/${att.id}/${att.filename}`));
-			}
-			return c.body(null, 204);
+			const { mailboxId, id } = c.req.valid("param");
+			const result = await toolDeleteEmail(c.env, mailboxId, id, c.env.BUCKET);
+			if (!("error" in result)) return c.body(null, 204);
+			return apiError(c, 404, "not_found", result.error);
 		},
 	)
 	.post(
@@ -204,8 +170,7 @@ export const emailRoutes = new Hono<MailboxContext>()
 		validator("param", EMAIL_ID_PARAM, validationErrorHook),
 		validator("json", MoveEmailBody, validationErrorHook),
 		async (c) => {
-			const { folderId } = c.req.valid("json");
-			const success = await c.var.mailboxStub.moveEmail(c.req.valid("param").id, folderId);
-			return success ? c.json({ status: "moved" }) : apiError(c, 404, "not_found", "Folder not found");
+			const result = await toolMoveEmail(c.env, c.req.param("mailboxId")!, c.req.param("id")!, c.req.valid("json").folderId);
+			return "error" in result ? apiError(c, 404, "not_found", "Folder not found") : c.json({ status: "moved" });
 		},
 	);

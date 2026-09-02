@@ -331,6 +331,7 @@ export class EmailMCP extends McpAgent<Env> {
 					to,
 					subject,
 					bodyHtml,
+					verify: true,
 				});
 				if ("error" in result) {
 					// Preserve the original MCP error format for send failures
@@ -368,7 +369,8 @@ export class EmailMCP extends McpAgent<Env> {
 				const result = await toolSendEmail(env, mailboxId, {
 					to,
 					subject,
-					bodyHtml,
+					html: bodyHtml,
+					verify: true,
 				});
 				if ("error" in result) {
 					if (typeof result.error === "string" && result.error.startsWith("Failed to send")) {
