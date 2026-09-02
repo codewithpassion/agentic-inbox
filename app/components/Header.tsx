@@ -3,7 +3,7 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import { Button, Input, Tooltip } from "@cloudflare/kumo";
-import { GearSixIcon, ListIcon, MagnifyingGlassIcon, RobotIcon, XIcon } from "@phosphor-icons/react";
+import { GearSixIcon, KeyIcon, ListIcon, MagnifyingGlassIcon, RobotIcon, XIcon } from "@phosphor-icons/react";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams, useSearchParams } from "react-router";
 import { useUIStore } from "~/hooks/useUIStore";
@@ -127,6 +127,15 @@ export default function Header() {
 						onClick={toggleAgentPanel}
 						aria-label="Toggle agent panel"
 						className="hidden lg:inline-flex"
+					/>
+				</Tooltip>
+				<Tooltip content="API keys" side="bottom" asChild>
+					<Button
+						variant="ghost"
+						shape="square"
+						icon={<KeyIcon size={20} />}
+						onClick={() => navigate("/settings/api-keys")}
+						aria-label="API keys"
 					/>
 				</Tooltip>
 				<Tooltip content="Settings" side="bottom" asChild>

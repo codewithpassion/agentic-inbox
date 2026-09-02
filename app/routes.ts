@@ -16,5 +16,6 @@ export default [
 		route("settings", "routes/settings.tsx"),
 		route("search", "routes/search-results.tsx"),
 	]),
+	route("settings/api-keys", "routes/api-keys-settings.tsx"),
 	route("*", "routes/not-found.tsx"),
 ] satisfies RouteConfig;

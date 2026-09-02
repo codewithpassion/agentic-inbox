@@ -3,9 +3,9 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import { Badge, Button, Input, Loader, useKumoToastManager } from "@cloudflare/kumo";
-import { RobotIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
+import { KeyIcon, RobotIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { Link as RouterLink, useParams } from "react-router";
 import { useMailbox, useUpdateMailbox } from "~/queries/mailboxes";
 
 // Placeholder shown in the textarea when no custom prompt is set.
@@ -82,6 +82,25 @@ export default function SettingsRoute() {
 						/>
 						<Input label="Email" type="email" value={mailbox.email} disabled />
 					</div>
+				</div>
+
+				{/* API keys */}
+				<div className="rounded-lg border border-kumo-line bg-kumo-base p-5">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<KeyIcon size={16} weight="duotone" className="text-kumo-subtle" />
+							<span className="text-sm font-medium text-kumo-default">API keys</span>
+						</div>
+						<RouterLink to="/settings/api-keys">
+							<Button variant="secondary" size="sm">
+								Manage keys
+							</Button>
+						</RouterLink>
+					</div>
+					<p className="text-xs text-kumo-subtle mt-2">
+						Create and manage keys for REST API and CLI access. Keys are not
+						tied to a single mailbox.
+					</p>
 				</div>
 
 				{/* Agent System Prompt */}

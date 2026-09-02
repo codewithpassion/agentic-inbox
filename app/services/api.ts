@@ -85,12 +85,36 @@ function del<T>(url: string) {
 	return request<T>(url, { method: "DELETE" });
 }
 
+function patch<T>(url: string, body?: unknown) {
+	return request<T>(url, {
+		method: "PATCH",
+		body: body != null ? JSON.stringify(body) : undefined,
+	});
+}
+
 // ---------- Typed response shapes ----------
 
 interface EmailListResponse {
 	emails: Email[];
 	totalCount: number;
 }
+
+export interface ApiKey {
+	id: string;
+	name: string;
+	key_prefix: string;
+	mailboxes: string[] | null;
+	created_at: string;
+	created_by: string | null;
+	expires_at: string | null;
+	last_used_at: string | null;
+	revoked_at: string | null;
+}
+
+export type PrincipalInfo =
+	| { kind: "access"; email: string }
+	| { kind: "api_key"; keyId: string; name: string; mailboxes: string[] | null }
+	| { kind: "dev" };
 
 // ---------- API client ----------
 
@@ -160,6 +184,18 @@ const api = {
 	// Search
 	searchEmails: (mailboxId: string, params: Record<string, string>) =>
 		get<EmailListResponse | Email[]>(`/api/v1/mailboxes/${mailboxId}/search`, { params }),
+
+	// API keys
+	getMe: () => get<{ principal: PrincipalInfo }>("/api/v1/me"),
+	getApiKeys: () => get<{ keys: ApiKey[] }>("/api/v1/api-keys"),
+	createApiKey: (input: { name: string; expires_at?: string | null; mailboxes?: string[] | null }) =>
+		post<{ key: ApiKey; secret: string }>("/api/v1/api-keys", input),
+	updateApiKey: (
+		id: string,
+		patchBody: { name?: string; expires_at?: string | null; mailboxes?: string[] | null },
+	) => patch<{ key: ApiKey }>(`/api/v1/api-keys/${id}`, patchBody),
+	revokeApiKey: (id: string) => post<{ key: ApiKey }>(`/api/v1/api-keys/${id}/revoke`),
+	deleteApiKey: (id: string) => del<void>(`/api/v1/api-keys/${id}`),
 };
 
 export default api;

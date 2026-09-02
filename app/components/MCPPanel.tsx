@@ -3,47 +3,9 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import { Button, Tooltip } from "@cloudflare/kumo";
-import {
-	CheckIcon,
-	CopyIcon,
-	PlugsIcon,
-	WrenchIcon,
-} from "@phosphor-icons/react";
-import { useState } from "react";
+import { PlugsIcon, WrenchIcon } from "@phosphor-icons/react";
 import { useParams } from "react-router";
-
-function CopyButton({ text }: { text: string }) {
-	const [copied, setCopied] = useState(false);
-
-	const handleCopy = async () => {
-		try {
-			await navigator.clipboard.writeText(text);
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
-		} catch {
-			// Clipboard API unavailable or permission denied — ignore silently
-		}
-	};
-
-	return (
-		<Tooltip content={copied ? "Copied!" : "Copy"} asChild>
-			<Button
-				variant="ghost"
-				shape="square"
-				size="sm"
-				icon={
-					copied ? (
-						<CheckIcon size={12} weight="bold" className="text-kumo-success" />
-					) : (
-						<CopyIcon size={12} />
-					)
-				}
-				onClick={handleCopy}
-				aria-label="Copy to clipboard"
-			/>
-		</Tooltip>
-	);
-}
+import { CopyButton } from "./CopyButton";
 
 const TOOLS = [
 	{ name: "list_mailboxes", desc: "List all mailboxes" },

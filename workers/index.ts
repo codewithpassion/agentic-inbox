@@ -5,7 +5,7 @@
 import { type Context, Hono } from "hono";
 import { cors } from "hono/cors";
 import PostalMime from "postal-mime";
-import { z } from "zod";
+import { ZodError, z } from "zod";
 import { sendEmail } from "./email-sender";
 import { storeAttachments, type StoredAttachment } from "./lib/attachments";
 import {
@@ -17,6 +17,7 @@ import {
 } from "./lib/email-helpers";
 import { SendEmailRequestSchema } from "./lib/schemas";
 import { handleReplyEmail, handleForwardEmail } from "./routes/reply-forward";
+import { apiKeyRoutes } from "./apiKeys/routes";
 import { Folders } from "../shared/folders";
 import type { Env } from "./types";
 import { requireMailbox, type MailboxContext } from "./lib/mailbox";
@@ -82,6 +83,22 @@ app.use("/api/*", cors({
 	},
 }));
 app.use("/api/v1/mailboxes/:mailboxId/*", requireMailbox);
+
+// Validation errors become 400s with the standard error envelope; anything
+// unexpected is logged and returns 500.
+app.onError((err, c) => {
+	if (err instanceof ZodError) {
+		return c.json(
+			{ error: { code: "validation_failed", message: err.issues[0]?.message ?? "Invalid request body" } },
+			400,
+		);
+	}
+	console.error("Unhandled API error:", (err as Error).message, (err as Error).stack);
+	return c.json({ error: { code: "internal_error", message: "Internal server error" } }, 500);
+});
+
+// API key management (Access principals only) and /me
+app.route("/", apiKeyRoutes);
 
 // -- Config ---------------------------------------------------------
 
