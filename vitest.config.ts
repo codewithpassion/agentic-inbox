@@ -26,6 +26,8 @@ export default defineConfig({
 				durableObjects: {
 					MAILBOX: { className: "MailboxDO", useSQLite: true },
 					API_KEYS: { className: "ApiKeyStore", useSQLite: true },
+					EMAIL_MCP: { className: "EmailMCP", useSQLite: true },
+					EMAIL_AGENT: { className: "EmailAgent", useSQLite: true },
 				},
 			},
 		})),

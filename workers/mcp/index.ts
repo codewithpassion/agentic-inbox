@@ -21,6 +21,7 @@ import {
 	toolMoveEmail,
 } from "../lib/tools";
 import { Folders, FOLDER_TOOL_DESCRIPTION, MOVE_FOLDER_TOOL_DESCRIPTION } from "../../shared/folders";
+import type { Principal } from "../lib/auth";
 import type { Env } from "../types";
 
 /** Wrap a plain result object into MCP content format. */
@@ -55,26 +56,60 @@ function mcpResult(result: Record<string, unknown>) {
 }
 
 /**
+ * Principal slice passed from workers/app.ts into the MCP Durable Object
+ * via agent props. API keys with a mailbox list may only touch those
+ * mailboxes; Access and dev principals are unrestricted.
+ */
+export type McpPrincipalProps = {
+	kind: "access" | "api_key" | "dev";
+	mailboxes?: string[] | null;
+};
+
+/**
+ * Build the context the agents streaming handler expects: it reads
+ * `ctx.props` and hands them to EmailMCP.onStart, which scopes every tool
+ * call to the principal's mailbox list. Typed as ExecutionContext because
+ * that is the declared handler signature.
+ */
+export function mcpContextWithPrincipal(principal: Principal): ExecutionContext {
+	return {
+		props: { kind: principal.kind, mailboxes: principal.kind === "api_key" ? principal.mailboxes : null },
+	} as unknown as ExecutionContext;
+}
+
+/**
  * EmailMCP — exposes email tools over the Model Context Protocol.
  *
  * Clients (ProtoAgent, Claude Code, Cursor, etc.) connect to the
  * `/mcp` endpoint and can list mailboxes, read/search emails,
  * draft replies, send messages, and manage folders.
  */
-export class EmailMCP extends McpAgent<Env> {
+export class EmailMCP extends McpAgent<Env, unknown, McpPrincipalProps> {
 	server = new McpServer({
 		name: "agentic-inbox",
 		version: "1.0.0",
 	});
 
+	/** Mailbox scope of the current principal, or null for unrestricted. */
+	private mailboxScope(): string[] | null {
+		const principal = this.props;
+		return principal?.kind === "api_key" ? (principal.mailboxes ?? null) : null;
+	}
+
 	async init() {
 		const env = this.env;
 
 		/**
-		 * Verify a mailbox exists in R2 before operating on it.
-		 * Returns an MCP error response if the mailbox is not found, or null if valid.
+		 * Verify a mailbox is visible to the principal (scoped API keys see
+		 * only their mailbox list, decision D4) and exists in R2 before
+		 * operating on it. Returns an MCP error response in the same
+		 * not-found shape as requireMailbox, or null if valid.
 		 */
 		const verifyMailbox = async (mailboxId: string) => {
+			const scope = this.mailboxScope();
+			if (scope && !scope.includes(mailboxId)) {
+				return mcpError(`Mailbox "${mailboxId}" not found. Use list_mailboxes to see available mailboxes.`);
+			}
 			const obj = await env.BUCKET.head(`mailboxes/${mailboxId}.json`);
 			if (!obj) {
 				return mcpError(`Mailbox "${mailboxId}" not found. Use list_mailboxes to see available mailboxes.`);
@@ -89,7 +124,9 @@ export class EmailMCP extends McpAgent<Env> {
 			{},
 			async () => {
 				const result = await toolListMailboxes(env);
-				return mcpText(result);
+				const scope = this.mailboxScope();
+				const visible = scope ? result.filter((m) => scope.includes(m.id)) : result;
+				return mcpText(visible);
 			},
 		);
 
@@ -280,6 +317,7 @@ export class EmailMCP extends McpAgent<Env> {
 					to,
 					subject,
 					bodyHtml,
+					runVerifyDraft: true,
 				});
 				if ("error" in result) {
 					if (result.error === "Draft not found") {

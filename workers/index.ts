@@ -74,7 +74,7 @@ app.get("/api/v1/openapi.json", openAPISpecs(app, {
 			version: "1.0.0",
 			description:
 				"REST API for Agentic Inbox. Authenticate with an API key (Authorization: Bearer aik_...) created in the web UI. " +
-				"verifyDraft note: the MCP server runs an AI pass over outgoing bodies; the REST API does not by default — pass verify: true on draft and send bodies to opt in.",
+				"verifyDraft note: the MCP server runs an AI pass over outgoing bodies; the REST API does not by default: pass verify: true on draft and send bodies to opt in.",
 		},
 	},
 }));
@@ -180,5 +180,7 @@ async function receiveEmail(event: { raw: ReadableStream; rawSize: number }, env
 // can resolve the Durable Object class names for the test bindings.
 export { MailboxDO } from "./durableObject";
 export { ApiKeyStore } from "./apiKeys/store";
+export { EmailMCP } from "./mcp";
+export { EmailAgent } from "./agent";
 
 export { app, receiveEmail };

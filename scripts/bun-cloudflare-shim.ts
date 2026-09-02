@@ -19,12 +19,23 @@ class DurableObjectStubBase {
 	}
 }
 
+class EmailMessageStub {}
+
 plugin({
 	name: "cloudflare-workers-shim",
 	setup(build) {
 		build.module("cloudflare:workers", () => ({
-			exports: { DurableObject: DurableObjectStubBase },
+			exports: {
+				DurableObject: DurableObjectStubBase,
+				WorkflowEntrypoint: class WorkflowEntrypointStub {},
+				env: {},
+				attributes: undefined,
+			},
 			loader: "object",
 		}));
-	},
+		build.module("cloudflare:email", () => ({
+			exports: { EmailMessage: EmailMessageStub },
+			loader: "object",
+		}));
+	}
 });
