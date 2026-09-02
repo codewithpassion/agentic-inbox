@@ -4,7 +4,7 @@
 
 import { writeFile } from "node:fs/promises";
 import type { Command } from "commander";
-import { download, getClient, unwrap } from "../client";
+import { ApiError, download, getClient, unwrap } from "../client";
 import { makeContext, requireMailbox } from "../context";
 import { usageError } from "../errors";
 
@@ -40,7 +40,12 @@ export function registerAttachments(program: Command): void {
 				`/api/v1/mailboxes/${encodeURIComponent(mailbox)}/emails/${encodeURIComponent(emailId)}/attachments/${encodeURIComponent(attachmentId)}`,
 			);
 			if (!response.ok) {
-				throw usageError(`Attachment download failed: ${response.status}`);
+				const body = (await response.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+				throw new ApiError(
+					response.status,
+					body.error?.code ?? `http_${response.status}`,
+					body.error?.message ?? `Attachment download failed: ${response.status}`,
+				);
 			}
 			await writeFile(outPath, await response.bytes());
 			process.stderr.write(`Saved ${outPath}\n`);

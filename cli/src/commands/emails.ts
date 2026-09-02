@@ -491,9 +491,11 @@ export function registerEmails(program: Command): void {
 			const mailbox = requireMailbox(ctx);
 			const results: { id: string; status: string }[] = [];
 			for (const id of ids) {
-				await client.DELETE("/api/v1/mailboxes/{mailboxId}/emails/{id}", {
-					params: { path: { mailboxId: mailbox, id } },
-				});
+				unwrap(
+					await client.DELETE("/api/v1/mailboxes/{mailboxId}/emails/{id}", {
+						params: { path: { mailboxId: mailbox, id } },
+					}),
+				);
 				results.push({ id, status: "deleted" });
 			}
 			await outputMutations(ctx, results);

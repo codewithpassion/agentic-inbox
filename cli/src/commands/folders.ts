@@ -77,9 +77,11 @@ export function registerFolders(program: Command): void {
 			await confirmOrFail({ yes: ctx.yes, stdoutIsTTY: ctx.stdoutIsTTY }, `Delete folder ${folderId}?`);
 			const client = getClient(ctx.settings);
 			const mailbox = requireMailbox(ctx);
-			await client.DELETE("/api/v1/mailboxes/{mailboxId}/folders/{id}", {
-				params: { path: { mailboxId: mailbox, id: folderId } },
-			});
+			unwrap(
+				await client.DELETE("/api/v1/mailboxes/{mailboxId}/folders/{id}", {
+					params: { path: { mailboxId: mailbox, id: folderId } },
+				}),
+			);
 			printJson([{ id: folderId, status: "deleted" }]);
 		});
 }

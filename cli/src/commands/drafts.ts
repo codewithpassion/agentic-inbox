@@ -97,9 +97,11 @@ export function registerDrafts(program: Command): void {
 			await confirmOrFail({ yes: ctx.yes, stdoutIsTTY: ctx.stdoutIsTTY }, `Discard draft ${draftId}?`);
 			const client = getClient(ctx.settings);
 			const mailbox = requireMailbox(ctx);
-			await client.DELETE("/api/v1/mailboxes/{mailboxId}/drafts/{draftId}", {
-				params: { path: { mailboxId: mailbox, draftId } },
-			});
+			unwrap(
+				await client.DELETE("/api/v1/mailboxes/{mailboxId}/drafts/{draftId}", {
+					params: { path: { mailboxId: mailbox, draftId } },
+				}),
+			);
 			printJson([{ id: draftId, status: "discarded" }]);
 		});
 }
