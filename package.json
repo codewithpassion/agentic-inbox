@@ -19,6 +19,7 @@
   },
   "scripts": {
     "build": "react-router build",
+    "build:cli": "bun run --cwd cli build",
     "cf-typegen": "wrangler types",
     "openapi:export": "bun --preload ./scripts/bun-cloudflare-shim.ts ./scripts/export-openapi.ts cli/openapi.json && cd cli && npx biome format --write openapi.json",
     "deploy": "npm run build && wrangler deploy",

@@ -1,11 +1,12 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "agentic-inbox",
+	"name": "agentic-inbox-hei",
+	"account_id": "a12823016aa16d0a8dd2678b258bd751",
 	"compatibility_date": "2025-11-28",
 	"main": "./workers/app.ts",
 	"routes": [
 		{
-			"pattern": "mail.claudecommunity.com.au",
+			"pattern": "mail.harbouredgeintelligence.com.au",
 			"custom_domain": true
 		}
 	],
@@ -19,7 +20,7 @@
 		// Production deploys must also define POLICY_AUD and TEAM_DOMAIN.
 		// TEAM_DOMAIN may be the base Access URL or the full /cdn-cgi/access/certs URL.
 		// The worker now fails closed outside local development if Access is not configured.
-		"DOMAINS": "mail.claudecommunity.com.au",
+		"DOMAINS": "harbouredgeintelligence.com.au",
 		"EMAIL_ADDRESSES": []
 	},
 	"send_email": [
