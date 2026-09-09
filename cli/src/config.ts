@@ -57,7 +57,9 @@ export function resolveSettings(options: {
 	const env = options.env ?? process.env;
 	const file = options.file ?? readConfigFile(configPath(env.XDG_CONFIG_HOME));
 	const profileName = options.profile ?? env.INBOX_PROFILE ?? "default";
-	const profileLayer = profileName === "default" ? file : (file.profiles?.[profileName] ?? {});
+	// The default profile lives at the file root; strip the `profiles` map so
+	// other profiles' credentials never ride along in the resolved settings.
+	const profileLayer = profileName === "default" ? ProfileSchema.parse(file) : (file.profiles?.[profileName] ?? {});
 
 	const fromEnv: ProfileConfig = {};
 	if (env.INBOX_URL) fromEnv.url = env.INBOX_URL;

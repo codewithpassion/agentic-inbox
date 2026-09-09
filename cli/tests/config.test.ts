@@ -101,6 +101,20 @@ describe("config file handling", () => {
 		require("node:fs").unlinkSync(filePath);
 	});
 
+	test("the default profile does not leak other profiles' credentials", () => {
+		const settings = resolveSettings({
+			file: {
+				url: "https://root.example.com",
+				api_key: "aik_root",
+				profiles: { hei: { url: "https://hei.example.com", api_key: "aik_hei" } },
+			},
+			env: {},
+			flags: {},
+		});
+		expect(settings).toEqual({ url: "https://root.example.com", api_key: "aik_root" });
+		expect(settings).not.toHaveProperty("profiles");
+	});
+
 	test("saveProfile for named profiles writes into the profiles map", () => {
 		const filePath = `/tmp/inbox-test-${crypto.randomUUID()}.json`;
 		saveProfile("work", { url: "https://work.example.com", api_key: "aik_w" }, filePath);
