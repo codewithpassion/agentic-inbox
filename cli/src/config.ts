@@ -19,7 +19,7 @@ const ConfigFileSchema = ProfileSchema.extend({
 });
 
 export type ProfileConfig = z.infer<typeof ProfileSchema>;
-type RawConfigFile = z.infer<typeof ConfigFileSchema>;
+export type RawConfigFile = z.infer<typeof ConfigFileSchema>;
 
 /** `$XDG_CONFIG_HOME/inbox/config.json`, falling back to `~/.config/inbox/config.json`. */
 export function configPath(xdgConfigHome?: string): string {
@@ -42,6 +42,17 @@ export function readConfigFile(filePath: string): RawConfigFile {
 		}
 		throw err;
 	}
+}
+
+/**
+ * Profile names the config file actually defines, for help text and error
+ * messages. "default" counts only when the file root carries settings of its
+ * own, so an empty file lists nothing.
+ */
+export function listProfiles(file: RawConfigFile): string[] {
+	const named = Object.keys(file.profiles ?? {}).sort();
+	const rootHasSettings = Object.keys(ProfileSchema.parse(file)).length > 0;
+	return rootHasSettings ? ["default", ...named] : named;
 }
 
 /**

@@ -43,7 +43,12 @@ const GROUPS: GroupDoc[] = [
 				flags: ["--url <url>", "--api-key <key>"],
 				description: "Store the base URL and API key for a profile",
 			},
-			{ name: "status", flags: [], description: "Print the principal the credentials resolve to" },
+			{
+				name: "status",
+				flags: [],
+				description: "Print the active profile, url, and the principal the credentials resolve to",
+			},
+			{ name: "profiles", flags: [], description: "List the profiles the config file defines" },
 			{ name: "logout", flags: [], description: "Remove the stored API key for a profile" },
 		],
 	},

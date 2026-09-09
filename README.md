@@ -86,6 +86,21 @@ inbox mailboxes list
 inbox emails list --mailbox hello@example.com
 ```
 
+Credentials live in `$XDG_CONFIG_HOME/inbox/config.json` (mode 0600), falling back to `~/.config/inbox/config.json`.
+
+If you run more than one deployment, give each a named profile instead of one shared default:
+
+```
+inbox --profile work auth login --url https://mail.work.example --api-key aik_...
+inbox --profile home auth login --url https://mail.home.example --api-key aik_...
+
+inbox auth profiles                 # names, urls, and which one is active
+inbox --profile work emails list    # pick one per command
+export INBOX_PROFILE=work           # or set it for the shell
+```
+
+`--profile` beats `INBOX_PROFILE`, which beats the config file. Naming a profile that does not exist is a usage error listing the ones that do. `inbox auth status` prints the active profile and url alongside the principal your key resolves to.
+
 The CLI prints JSON when stdout is piped (or with `--json`) and tables on a terminal, and it never prompts when it is not attached to a terminal: destructive commands want `--yes` and exit 4 without it. Exit codes: 0 ok, 1 unexpected, 2 usage, 3 API 4xx, 4 confirmation required, 5 auth, 6 not found.
 
 For agents, `inbox agent-docs` prints a compact, deterministic command reference sized for a system prompt.

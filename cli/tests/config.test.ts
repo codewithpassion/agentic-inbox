@@ -3,7 +3,7 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import { describe, expect, test } from "bun:test";
-import { clearApiKey, configPath, readConfigFile, resolveSettings, saveProfile } from "../src/config";
+import { clearApiKey, configPath, listProfiles, readConfigFile, resolveSettings, saveProfile } from "../src/config";
 
 describe("resolveSettings precedence", () => {
 	test("config file alone is used when nothing else is set", () => {
@@ -121,5 +121,11 @@ describe("config file handling", () => {
 		const file = readConfigFile(filePath);
 		expect(file.profiles?.work).toEqual({ url: "https://work.example.com", api_key: "aik_w" });
 		require("node:fs").unlinkSync(filePath);
+	});
+
+	test("listProfiles names the profiles map and only counts a configured root", () => {
+		expect(listProfiles({})).toEqual([]);
+		expect(listProfiles({ profiles: { hei: { url: "u" }, ccau: { url: "u" } } })).toEqual(["ccau", "hei"]);
+		expect(listProfiles({ url: "u", profiles: { hei: { url: "u" } } })).toEqual(["default", "hei"]);
 	});
 });

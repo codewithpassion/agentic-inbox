@@ -35,6 +35,8 @@ export function buildProgram(): Command {
 		.option("--json", "Shorthand for --format json")
 		.option("--profile <name>", "Named profile from the config file")
 		.option("--yes", "Skip confirmation prompts (destructive commands)");
+	// Global flags are accepted on every subcommand, so list them there too.
+	program.configureHelp({ showGlobalOptions: true });
 
 	registerAuth(program);
 	registerMailboxes(program);

@@ -3,12 +3,13 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import type { Command } from "commander";
-import { getClient, unwrap } from "../client";
-import { clearApiKey, configPath, resolveSettings, saveProfile } from "../config";
+import { baseUrl, getClient, unwrap } from "../client";
+import { clearApiKey, configPath, listProfiles, readConfigFile, resolveSettings, saveProfile } from "../config";
 import { makeContext } from "../context";
 import { usageError } from "../errors";
 import { type OutputFormat, printJson, renderKv } from "../output";
 import { readHidden, readLine } from "../prompt";
+import { emitList } from "../render";
 
 interface PrincipalInfo {
 	kind: "access" | "api_key" | "dev";
@@ -46,15 +47,24 @@ async function gatherCredentials(opts: AuthOptions): Promise<{ url: string; apiK
 	return { url, apiKey };
 }
 
-/** Render /me output as JSON or a key-value block. */
-export function outputPrincipal(principal: PrincipalInfo, format: OutputFormat): void {
+/** Render /me output as JSON or a key-value block, prefixed by the connection. */
+export function outputPrincipal(
+	principal: PrincipalInfo,
+	format: OutputFormat,
+	connection: { profile: string; url: string },
+): void {
 	if (format === "json") {
-		printJson(principal);
+		printJson({ ...principal, profile: connection.profile, url: connection.url });
 		return;
 	}
+	const head: [string, string][] = [
+		["profile", connection.profile],
+		["url", connection.url],
+	];
 	if (principal.kind === "api_key") {
 		process.stdout.write(
 			`${renderKv([
+				...head,
 				["principal", "api_key"],
 				["name", principal.name ?? ""],
 				["key", `${principal.keyPrefix ?? "aik_"}...`],
@@ -64,15 +74,10 @@ export function outputPrincipal(principal: PrincipalInfo, format: OutputFormat):
 		return;
 	}
 	if (principal.kind === "access") {
-		process.stdout.write(
-			`${renderKv([
-				["principal", "access"],
-				["email", principal.email ?? ""],
-			])}\n`,
-		);
+		process.stdout.write(`${renderKv([...head, ["principal", "access"], ["email", principal.email ?? ""]])}\n`);
 		return;
 	}
-	process.stdout.write(`${renderKv([["principal", "dev (local development, unauthenticated)"]])}\n`);
+	process.stdout.write(`${renderKv([...head, ["principal", "dev (local development, unauthenticated)"]])}\n`);
 }
 
 /** `inbox auth login|status|logout`. */
@@ -103,7 +108,35 @@ export function registerAuth(program: Command): void {
 			const ctx = makeContext(this);
 			const client = getClient(ctx.settings);
 			const { principal } = unwrap(await client.GET("/api/v1/me")) as { principal: PrincipalInfo };
-			outputPrincipal(principal, ctx.format);
+			outputPrincipal(principal, ctx.format, { profile: ctx.profile, url: baseUrl(ctx.settings) });
+		});
+
+	auth
+		.command("profiles")
+		.description("List the profiles the config file defines")
+		.action(async function (this: Command) {
+			const ctx = makeContext(this);
+			const filePath = configPath(process.env.XDG_CONFIG_HOME);
+			const file = readConfigFile(filePath);
+			const rows = listProfiles(file).map((name) => {
+				const settings = resolveSettings({ profile: name, env: {}, flags: {}, file });
+				return {
+					name,
+					url: settings.url ?? "",
+					authenticated: settings.api_key ? "yes" : "no",
+					active: name === ctx.profile,
+				};
+			});
+			if (rows.length === 0 && ctx.format !== "json") {
+				process.stderr.write(`No profiles configured in ${filePath}\n`);
+				return;
+			}
+			emitList(ctx, rows, [
+				{ header: "NAME", cell: (r) => r.name },
+				{ header: "URL", cell: (r) => r.url },
+				{ header: "AUTH", cell: (r) => r.authenticated },
+				{ header: "ACTIVE", cell: (r) => (r.active ? "*" : "") },
+			]);
 		});
 
 	auth

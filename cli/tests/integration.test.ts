@@ -2,19 +2,29 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
+import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 /**
  * Minimal CLI integration tests: a mock API server plus the real command
  * wiring, verifying exit codes and output shapes for the write paths.
  */
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { runCli } from "../src/main";
 
 const PORT = 5233;
 const BASE = `http://localhost:${PORT}`;
 
 let server: ReturnType<typeof Bun.serve>;
+let configHome: string;
+let originalConfigHome: string | undefined;
 
 beforeAll(() => {
+	// Point config resolution at an empty directory: without this the suite
+	// reads the developer's real ~/.config/inbox/config.json.
+	originalConfigHome = process.env.XDG_CONFIG_HOME;
+	configHome = mkdtempSync(path.join(tmpdir(), "inbox-cli-test-"));
+	process.env.XDG_CONFIG_HOME = configHome;
 	server = Bun.serve({
 		port: PORT,
 		fetch: async (req) => {
@@ -46,7 +56,12 @@ beforeAll(() => {
 	});
 });
 
-afterAll(() => server.stop(true));
+afterAll(() => {
+	server.stop(true);
+	if (originalConfigHome === undefined) delete process.env.XDG_CONFIG_HOME;
+	else process.env.XDG_CONFIG_HOME = originalConfigHome;
+	rmSync(configHome, { recursive: true, force: true });
+});
 
 /** Run one command in-process, capturing stdout and stderr writes. */
 async function runCaptured(args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
@@ -160,5 +175,25 @@ describe("CLI write paths against a mock API", () => {
 		expect(run.code).toBe(0);
 		const parsed = JSON.parse(run.stdout) as { id: string; status: string }[];
 		expect(parsed).toEqual([{ id: "draft-2", status: "draft_updated" }]);
+	});
+
+	test("an unknown --profile is a usage error naming the configured profiles", async () => {
+		await runCli(["--profile", "hei", "auth", "login", "--url", BASE, "--api-key", "aik_hei"]);
+		const run = await runCaptured(["--profile", "heiy", "mailboxes", "list"]);
+		expect(run.code).toBe(2);
+		const envelope = JSON.parse(run.stderr) as { error: { code: string; message: string } };
+		expect(envelope.error.code).toBe("usage");
+		expect(envelope.error.message).toContain('Unknown profile "heiy"');
+		expect(envelope.error.message).toContain("hei");
+	});
+
+	test("auth profiles lists each profile and marks the active one", async () => {
+		await runCli(["--profile", "ccau", "auth", "login", "--url", BASE, "--api-key", "aik_ccau"]);
+		const run = await runCaptured(["--profile", "ccau", "auth", "profiles", "--json"]);
+		expect(run.code).toBe(0);
+		const rows = JSON.parse(run.stdout) as { name: string; url: string; active: boolean }[];
+		const ccau = rows.find((r) => r.name === "ccau");
+		expect(ccau).toMatchObject({ url: BASE, authenticated: "yes", active: true });
+		expect(rows.find((r) => r.name === "hei")?.active).toBe(false);
 	});
 });
