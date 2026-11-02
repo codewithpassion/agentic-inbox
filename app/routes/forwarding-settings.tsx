@@ -2,7 +2,7 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
-import { Badge, Button, Dialog, Empty, Input, Loader, Table, useKumoToastManager } from "@cloudflare/kumo";
+import { Badge, Button, Dialog, Empty, Input, Loader, Select, Table, useKumoToastManager } from "@cloudflare/kumo";
 import { ArrowBendUpRightIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { type FormEvent, useState } from "react";
 import { BackButton } from "~/components/BackButton";
@@ -12,6 +12,9 @@ import type { ForwardDestination, ForwardRule } from "~/services/api";
 export function meta() {
 	return [{ title: "Forwarding | Agentic Inbox" }];
 }
+
+/** Select value for typing an address that isn't verified yet. */
+const NEW_ADDRESS = "new-address";
 
 const STATUS_BADGE: Record<ForwardRule["destination_status"], { label: string; variant: "success" | "secondary" | "destructive" }> = {
 	verified: { label: "Verified", variant: "success" },
@@ -37,7 +40,11 @@ export default function ForwardingSettingsRoute() {
 					</div>
 				</div>
 
-				<AddRuleForm />
+				{!isLoading && (
+					<AddRuleForm
+						verifiedDestinations={(data?.destinations ?? []).filter((d) => d.status === "verified").map((d) => d.email)}
+					/>
+				)}
 
 				{isLoading ? (
 					<div className="flex justify-center py-20">
@@ -79,18 +86,25 @@ export default function ForwardingSettingsRoute() {
 	);
 }
 
-function AddRuleForm() {
+function AddRuleForm({ verifiedDestinations }: { verifiedDestinations: string[] }) {
 	const toastManager = useKumoToastManager();
 	const createMutation = useCreateForwardRule();
 	const [source, setSource] = useState("");
-	const [destination, setDestination] = useState("");
+	const [choice, setChoice] = useState<string | null>(null);
+	const [typedDestination, setTypedDestination] = useState("");
+
+	const canChoose = verifiedDestinations.length > 0;
+	const typing = !canChoose || choice === NEW_ADDRESS;
+	const destination = typing ? typedDestination.trim() : choice;
 
 	const handleSubmit = async (event: FormEvent) => {
 		event.preventDefault();
+		if (!destination) return;
 		try {
-			await createMutation.mutateAsync({ source: source.trim(), destination: destination.trim() });
+			await createMutation.mutateAsync({ source: source.trim(), destination });
 			setSource("");
-			setDestination("");
+			setChoice(null);
+			setTypedDestination("");
 			toastManager.add({ title: "Forward rule added" });
 		} catch (e) {
 			toastManager.add({ title: (e as Error).message, variant: "error" });
@@ -100,7 +114,7 @@ function AddRuleForm() {
 	return (
 		<form
 			onSubmit={handleSubmit}
-			className="mb-4 flex flex-col gap-3 rounded-lg border border-kumo-line bg-kumo-base p-5 md:flex-row md:items-end"
+			className="mb-4 flex flex-col gap-3 rounded-lg border border-kumo-line bg-kumo-base p-5 md:flex-row md:items-start"
 		>
 			<div className="flex-1">
 				<Input
@@ -112,17 +126,42 @@ function AddRuleForm() {
 					onChange={(e) => setSource(e.target.value)}
 				/>
 			</div>
-			<div className="flex-1">
-				<Input
-					label="Send it to"
-					type="email"
-					required
-					placeholder="you@gmail.com"
-					value={destination}
-					onChange={(e) => setDestination(e.target.value)}
-				/>
+			<div className="flex flex-1 flex-col gap-2">
+				{canChoose && (
+					<Select
+						label="Send it to"
+						className="w-full"
+						value={choice}
+						onValueChange={setChoice}
+						renderValue={(value) => (value === NEW_ADDRESS ? "A new address" : (value ?? "Choose an address"))}
+					>
+						{verifiedDestinations.map((email) => (
+							<Select.Option key={email} value={email}>
+								{email}
+							</Select.Option>
+						))}
+						<Select.Option value={NEW_ADDRESS}>A new address</Select.Option>
+					</Select>
+				)}
+				{typing && (
+					<Input
+						label={canChoose ? "New address" : "Send it to"}
+						type="email"
+						required
+						placeholder="you@gmail.com"
+						value={typedDestination}
+						onChange={(e) => setTypedDestination(e.target.value)}
+					/>
+				)}
 			</div>
-			<Button type="submit" variant="primary" icon={<PlusIcon size={14} />} loading={createMutation.isPending}>
+			<Button
+				type="submit"
+				variant="primary"
+				className="md:mt-7"
+				icon={<PlusIcon size={14} />}
+				loading={createMutation.isPending}
+				disabled={!typing && !destination}
+			>
 				Add rule
 			</Button>
 		</form>
