@@ -431,7 +431,7 @@
 			"get": {
 				"responses": {
 					"200": {
-						"description": "Rules",
+						"description": "Rules and destinations",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -450,9 +450,20 @@
 												},
 												"required": ["source", "destination", "created_at", "created_by", "destination_status"]
 											}
+										},
+										"destinations": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"email": { "type": "string" },
+													"status": { "type": "string", "enum": ["verified", "pending"] }
+												},
+												"required": ["email", "status"]
+											}
 										}
 									},
-									"required": ["rules"]
+									"required": ["rules", "destinations"]
 								}
 							}
 						}
@@ -478,7 +489,7 @@
 				},
 				"operationId": "getApiV1Forwarding",
 				"parameters": [],
-				"description": "List forward rules with the verification status of each destination."
+				"description": "List forward rules with the verification status of each destination, and every destination on the Cloudflare account. Destinations are empty when Cloudflare can't be asked."
 			},
 			"post": {
 				"responses": {

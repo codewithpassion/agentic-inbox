@@ -142,6 +142,11 @@ export interface ForwardRule {
 	destination_status: "verified" | "pending" | "unknown";
 }
 
+export interface ForwardDestination {
+	email: string;
+	status: "verified" | "pending";
+}
+
 export type PrincipalInfo =
 	| { kind: "access"; email: string }
 	| { kind: "api_key"; keyId: string; name: string; mailboxes: string[] | null; keyPrefix: string }
@@ -232,7 +237,7 @@ const api = {
 	deleteApiKey: (id: string) => del<void>(`/api/v1/api-keys/${id}`),
 
 	// Forward rules
-	getForwardRules: () => get<{ rules: ForwardRule[] }>("/api/v1/forwarding"),
+	getForwardRules: () => get<{ rules: ForwardRule[]; destinations: ForwardDestination[] }>("/api/v1/forwarding"),
 	createForwardRule: (input: { source: string; destination: string }) =>
 		post<{ rule: ForwardRule }>("/api/v1/forwarding", input),
 	deleteForwardRule: (source: string) => del<void>(`/api/v1/forwarding/${encodeURIComponent(source)}`),

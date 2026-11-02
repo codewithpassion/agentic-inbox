@@ -81,7 +81,7 @@ export interface paths {
 			path?: never;
 			cookie?: never;
 		};
-		/** @description List forward rules with the verification status of each destination. */
+		/** @description List forward rules with the verification status of each destination, and every destination on the Cloudflare account. Destinations are empty when Cloudflare can't be asked. */
 		get: operations["getApiV1Forwarding"];
 		put?: never;
 		/** @description Forward mail for an address on this deployment's domains to an outside address. If the address also has a mailbox, mail is stored and forwarded. New destinations are registered with Cloudflare, which must verify them before mail is delivered. */
@@ -750,7 +750,7 @@ export interface operations {
 		};
 		requestBody?: never;
 		responses: {
-			/** @description Rules */
+			/** @description Rules and destinations */
 			200: {
 				headers: {
 					[name: string]: unknown;
@@ -764,6 +764,11 @@ export interface operations {
 							created_by: string | null;
 							/** @enum {string} */
 							destination_status: "verified" | "pending" | "unknown";
+						}[];
+						destinations: {
+							email: string;
+							/** @enum {string} */
+							status: "verified" | "pending";
 						}[];
 					};
 				};

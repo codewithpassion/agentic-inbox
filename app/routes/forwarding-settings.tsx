@@ -5,9 +5,9 @@
 import { Badge, Button, Dialog, Empty, Input, Loader, Table, useKumoToastManager } from "@cloudflare/kumo";
 import { ArrowBendUpRightIcon, PlusIcon, TrashIcon } from "@phosphor-icons/react";
 import { type FormEvent, useState } from "react";
-import { Link as RouterLink } from "react-router";
+import { BackButton } from "~/components/BackButton";
 import { useCreateForwardRule, useDeleteForwardRule, useForwardRules } from "~/queries/forwarding";
-import type { ForwardRule } from "~/services/api";
+import type { ForwardDestination, ForwardRule } from "~/services/api";
 
 export function meta() {
 	return [{ title: "Forwarding | Agentic Inbox" }];
@@ -26,15 +26,15 @@ export default function ForwardingSettingsRoute() {
 	return (
 		<div className="min-h-screen bg-kumo-recessed">
 			<div className="mx-auto max-w-4xl px-4 py-6 md:px-8">
-				<div className="mb-6">
-					<h1 className="text-lg font-semibold text-kumo-default">Forwarding</h1>
-					<p className="text-xs text-kumo-subtle mt-0.5">
-						Send mail for an address on your domains to another inbox. If the
-						address also has a mailbox, it keeps a copy.{" "}
-						<RouterLink to="/" className="text-kumo-brand hover:underline">
-							Back to inbox
-						</RouterLink>
-					</p>
+				<div className="mb-6 flex items-start gap-2">
+					<BackButton />
+					<div>
+						<h1 className="text-lg font-semibold text-kumo-default">Forwarding</h1>
+						<p className="text-xs text-kumo-subtle mt-0.5">
+							Send mail for an address on your domains to another inbox. If the
+							address also has a mailbox, it keeps a copy.
+						</p>
+					</div>
 				</div>
 
 				<AddRuleForm />
@@ -70,6 +70,8 @@ export default function ForwardingSettingsRoute() {
 						. Until then, forwarded mail bounces unless the address has a mailbox.
 					</p>
 				)}
+
+				{data && data.destinations.length > 0 && <DestinationsTable destinations={data.destinations} />}
 			</div>
 
 			<DeleteRuleDialog target={deleteTarget} onClose={() => setDeleteTarget(null)} />
@@ -168,6 +170,38 @@ function RulesTable({ rules, onDelete }: { rules: ForwardRule[]; onDelete: (rule
 					})}
 				</Table.Body>
 			</Table>
+		</div>
+	);
+}
+
+function DestinationsTable({ destinations }: { destinations: ForwardDestination[] }) {
+	return (
+		<div className="mt-6">
+			<h2 className="text-sm font-semibold text-kumo-default">Destination addresses</h2>
+			<p className="text-xs text-kumo-subtle mt-0.5 mb-3">Addresses on your Cloudflare account that can receive forwarded mail.</p>
+			<div className="rounded-lg border border-kumo-line bg-kumo-base overflow-hidden">
+				<Table>
+					<Table.Header>
+						<Table.Row>
+							<Table.Head>Address</Table.Head>
+							<Table.Head>Status</Table.Head>
+						</Table.Row>
+					</Table.Header>
+					<Table.Body>
+						{destinations.map((destination) => {
+							const badge = STATUS_BADGE[destination.status];
+							return (
+								<Table.Row key={destination.email}>
+									<Table.Cell>{destination.email}</Table.Cell>
+									<Table.Cell>
+										<Badge variant={badge.variant}>{badge.label}</Badge>
+									</Table.Cell>
+								</Table.Row>
+							);
+						})}
+					</Table.Body>
+				</Table>
+			</div>
 		</div>
 	);
 }

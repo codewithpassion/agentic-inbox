@@ -21,7 +21,7 @@ import {
 	TrashIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
-import { Link as RouterLink } from "react-router";
+import { BackButton } from "~/components/BackButton";
 import { CopyButton } from "~/components/CopyButton";
 import {
 	useApiKeys,
@@ -68,20 +68,17 @@ export default function ApiKeysSettingsRoute() {
 	return (
 		<div className="min-h-screen bg-kumo-recessed">
 			<div className="mx-auto max-w-4xl px-4 py-6 md:px-8">
-				<div className="flex items-center justify-between mb-6">
-					<div>
-						<h1 className="text-lg font-semibold text-kumo-default">API keys</h1>
-						<p className="text-xs text-kumo-subtle mt-0.5">
-							Keys authenticate REST API and CLI clients. Anyone with a key can
-							access this deployment, so only create them for people and agents
-							you trust.{" "}
-							<RouterLink
-								to="/"
-								className="text-kumo-brand hover:underline"
-							>
-								Back to inbox
-							</RouterLink>
-						</p>
+				<div className="flex items-center justify-between gap-4 mb-6">
+					<div className="flex items-start gap-2">
+						<BackButton />
+						<div>
+							<h1 className="text-lg font-semibold text-kumo-default">API keys</h1>
+							<p className="text-xs text-kumo-subtle mt-0.5">
+								Keys authenticate REST API and CLI clients. Anyone with a key can
+								access this deployment, so only create them for people and agents
+								you trust.
+							</p>
+						</div>
 					</div>
 					<Button variant="primary" icon={<PlusIcon size={14} />} onClick={() => setCreateOpen(true)}>
 						Create key

@@ -2,7 +2,8 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
-import { describe, expect, it } from "vitest";
+import { env } from "cloudflare:test";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fetchApi } from "./helpers";
 
 type RuleResponse = { source: string; destination: string; destination_status: string };
@@ -59,6 +60,43 @@ describe("/api/v1/forwarding", () => {
 		expect((await fetchApi(path, { method: "DELETE" })).status).toBe(204);
 		expect((await listRules()).map((r) => r.source)).not.toContain("gone@mail.example.com");
 		expect((await fetchApi(path, { method: "DELETE" })).status).toBe(404);
+	});
+
+	describe("destinations on the account", () => {
+		const bindings = env as unknown as Record<string, string | undefined>;
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+			delete bindings.EMAIL_ROUTING_API_TOKEN;
+			delete bindings.EMAIL_ROUTING_ACCOUNT_ID;
+		});
+
+		async function listDestinations() {
+			const response = await fetchApi("/api/v1/forwarding");
+			return ((await response.json()) as { destinations: { email: string; status: string }[] }).destinations;
+		}
+
+		it("lists every destination with its status", async () => {
+			bindings.EMAIL_ROUTING_API_TOKEN = "test-token";
+			bindings.EMAIL_ROUTING_ACCOUNT_ID = "test-account";
+			vi.spyOn(globalThis, "fetch").mockResolvedValue(
+				Response.json({
+					result: [
+						{ email: "Done@Elsewhere.Example", verified: "2026-11-02T00:00:00Z" },
+						{ email: "waiting@elsewhere.example", verified: null },
+					],
+					result_info: { total_count: 2 },
+				}),
+			);
+			expect(await listDestinations()).toEqual([
+				{ email: "done@elsewhere.example", status: "verified" },
+				{ email: "waiting@elsewhere.example", status: "pending" },
+			]);
+		});
+
+		it("lists none when Cloudflare can't be asked", async () => {
+			expect(await listDestinations()).toEqual([]);
+		});
 	});
 
 	it("refuses API keys, so a leaked key cannot redirect mail", async () => {

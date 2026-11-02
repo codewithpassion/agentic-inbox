@@ -29,6 +29,11 @@ const ForwardRuleSchema = z.object({
 	destination_status: z.enum(["verified", "pending", "unknown"]),
 });
 
+const DestinationSchema = z.object({
+	email: z.string(),
+	status: z.enum(["verified", "pending"]),
+});
+
 const CreateForwardRuleBody = z.object({
 	source: z.string().email(),
 	destination: z.string().email(),
@@ -57,11 +62,16 @@ forwardingRoutes.use("/api/v1/forwarding/*", requireAccessPrincipal);
 forwardingRoutes.get(
 	"/api/v1/forwarding",
 	describeRoute({
-		description: "List forward rules with the verification status of each destination.",
+		description:
+			"List forward rules with the verification status of each destination, and every destination on the Cloudflare account. Destinations are empty when Cloudflare can't be asked.",
 		responses: {
 			200: {
-				description: "Rules",
-				content: { "application/json": { schema: resolver(z.object({ rules: z.array(ForwardRuleSchema) })) } },
+				description: "Rules and destinations",
+				content: {
+					"application/json": {
+						schema: resolver(z.object({ rules: z.array(ForwardRuleSchema), destinations: z.array(DestinationSchema) })),
+					},
+				},
 			},
 			403: FORBIDDEN_403,
 		},
@@ -73,6 +83,7 @@ forwardingRoutes.get(
 		]);
 		return c.json({
 			rules: rules.map((rule) => ({ ...rule, destination_status: statuses?.get(rule.destination) ?? "unknown" })),
+			destinations: [...(statuses ?? [])].map(([email, status]) => ({ email, status })),
 		});
 	},
 );
