@@ -83,7 +83,7 @@ app.all("*", (c) => {
 export default {
 	fetch: app.fetch,
 	async email(
-		event: { raw: ReadableStream; rawSize: number },
+		event: { to: string; raw: ReadableStream; rawSize: number },
 		env: Env,
 		ctx: ExecutionContext,
 	) {
