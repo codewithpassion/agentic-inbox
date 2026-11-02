@@ -427,6 +427,205 @@
 				"description": "Revoke a key. Verification fails immediately; the record stays for auditing."
 			}
 		},
+		"/api/v1/forwarding": {
+			"get": {
+				"responses": {
+					"200": {
+						"description": "Rules",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"rules": {
+											"type": "array",
+											"items": {
+												"type": "object",
+												"properties": {
+													"source": { "type": "string" },
+													"destination": { "type": "string" },
+													"created_at": { "type": "string" },
+													"created_by": { "type": ["string", "null"] },
+													"destination_status": { "type": "string", "enum": ["verified", "pending", "unknown"] }
+												},
+												"required": ["source", "destination", "created_at", "created_by", "destination_status"]
+											}
+										}
+									},
+									"required": ["rules"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "API keys cannot manage forward rules",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "getApiV1Forwarding",
+				"parameters": [],
+				"description": "List forward rules with the verification status of each destination."
+			},
+			"post": {
+				"responses": {
+					"201": {
+						"description": "Created rule",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"rule": {
+											"type": "object",
+											"properties": {
+												"source": { "type": "string" },
+												"destination": { "type": "string" },
+												"created_at": { "type": "string" },
+												"created_by": { "type": ["string", "null"] },
+												"destination_status": { "type": "string", "enum": ["verified", "pending", "unknown"] }
+											},
+											"required": ["source", "destination", "created_at", "created_by", "destination_status"]
+										}
+									},
+									"required": ["rule"]
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid addresses",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"403": {
+						"description": "API keys cannot manage forward rules",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"409": {
+						"description": "Rule already exists",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "postApiV1Forwarding",
+				"parameters": [],
+				"description": "Forward mail for an address on this deployment's domains to an outside address. If the address also has a mailbox, mail is stored and forwarded. New destinations are registered with Cloudflare, which must verify them before mail is delivered.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"source": { "type": "string", "format": "email" },
+									"destination": { "type": "string", "format": "email" }
+								},
+								"required": ["source", "destination"]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/api/v1/forwarding/{source}": {
+			"delete": {
+				"responses": {
+					"204": { "description": "Deleted" },
+					"403": {
+						"description": "API keys cannot manage forward rules",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					},
+					"404": {
+						"description": "Not found",
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"properties": {
+										"error": {
+											"type": "object",
+											"properties": { "code": { "type": "string" }, "message": { "type": "string" } },
+											"required": ["code", "message"]
+										}
+									},
+									"required": ["error"]
+								}
+							}
+						}
+					}
+				},
+				"operationId": "deleteApiV1ForwardingBySource",
+				"parameters": [{ "in": "path", "name": "source", "schema": { "type": "string" }, "required": true }],
+				"description": "Delete a forward rule. The destination stays registered on the Cloudflare account."
+			}
+		},
 		"/api/v1/config": {
 			"get": {
 				"responses": {

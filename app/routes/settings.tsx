@@ -3,7 +3,7 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import { Badge, Button, Input, Loader, useKumoToastManager } from "@cloudflare/kumo";
-import { KeyIcon, RobotIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
+import { ArrowBendUpRightIcon, KeyIcon, RobotIcon, ArrowCounterClockwiseIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Link as RouterLink, useParams } from "react-router";
 import { useMailbox, useUpdateMailbox } from "~/queries/mailboxes";
@@ -100,6 +100,25 @@ export default function SettingsRoute() {
 					<p className="text-xs text-kumo-subtle mt-2">
 						Create and manage keys for REST API and CLI access. Each key can
 						be unrestricted or restricted to specific mailboxes.
+					</p>
+				</div>
+
+				{/* Forwarding */}
+				<div className="rounded-lg border border-kumo-line bg-kumo-base p-5">
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<ArrowBendUpRightIcon size={16} weight="duotone" className="text-kumo-subtle" />
+							<span className="text-sm font-medium text-kumo-default">Forwarding</span>
+						</div>
+						<RouterLink to="/settings/forwarding">
+							<Button variant="secondary" size="sm">
+								Manage forwarding
+							</Button>
+						</RouterLink>
+					</div>
+					<p className="text-xs text-kumo-subtle mt-2">
+						Send mail for an address on your domains to another inbox. These
+						rules apply to the whole deployment, not just this mailbox.
 					</p>
 				</div>
 

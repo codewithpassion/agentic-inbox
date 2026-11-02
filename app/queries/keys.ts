@@ -26,5 +26,8 @@ export const queryKeys = {
 	apiKeys: {
 		all: ["api-keys"] as const,
 	},
+	forwarding: {
+		all: ["forwarding"] as const,
+	},
 	config: ["config"] as const,
 };

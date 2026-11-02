@@ -20,6 +20,7 @@ import { configRoutes } from "./routes/config";
 import { draftRoutes } from "./routes/drafts";
 import { emailRoutes } from "./routes/emails";
 import { folderRoutes } from "./routes/folders";
+import { forwardingRoutes, getForwardRule } from "./forwarding";
 import { mailboxRoutes } from "./routes/mailboxes";
 import { replyForwardRoutes } from "./routes/reply-forward";
 import { searchRoutes } from "./routes/search";
@@ -52,6 +53,9 @@ app.use("/api/v1/mailboxes/:mailboxId/*", requireMailbox);
 
 // API key management (Access principals only) and /me
 app.route("/", apiKeyRoutes);
+
+// Forward rules (signed-in people only)
+app.route("/", forwardingRoutes);
 
 // Mail resources
 app.route("/", configRoutes);
@@ -112,22 +116,42 @@ async function streamToArrayBuffer(stream: ReadableStream, streamSize: number) {
 	return result;
 }
 
-async function receiveEmail(event: { to: string; raw: ReadableStream; rawSize: number }, env: Env, ctx: ExecutionContext) {
+interface InboundEmail {
+	to: string;
+	raw: ReadableStream;
+	rawSize: number;
+	forward(rcptTo: string): Promise<unknown>;
+}
+
+async function receiveEmail(event: InboundEmail, env: Env, ctx: ExecutionContext) {
+	const recipient = event.to.toLowerCase();
+	const forwardRule = await getForwardRule(env.BUCKET, recipient);
+	const stored = await storeInMailbox(event, recipient, env, ctx);
+	if (!forwardRule) return;
+
+	try {
+		await event.forward(forwardRule.destination);
+	} catch (e) {
+		console.error(`Forwarding ${recipient} failed:`, (e as Error).message);
+		// With no stored copy, failing the delivery bounces the mail instead of losing it.
+		if (!stored) throw e;
+	}
+}
+
+/** Returns whether the mail was stored: false when the address has no mailbox. */
+async function storeInMailbox(event: InboundEmail, mailboxId: string, env: Env, ctx: ExecutionContext): Promise<boolean> {
+	const allowedAddresses = ((env.EMAIL_ADDRESSES ?? []) as string[]).map((a) => a.toLowerCase());
+	if (allowedAddresses.length > 0 && !allowedAddresses.includes(mailboxId)) { console.log(`No mailbox for ${mailboxId}: recipient does not match EMAIL_ADDRESSES`); return false; }
+	if (!(await env.BUCKET.head(`mailboxes/${mailboxId}.json`))) { console.log(`No mailbox for ${mailboxId}`); return false; }
+
 	const rawEmail = await streamToArrayBuffer(event.raw, event.rawSize);
 	const parsedEmail = await new PostalMime().parse(rawEmail);
 
-	const allowedAddresses = ((env.EMAIL_ADDRESSES ?? []) as string[]).map((a) => a.toLowerCase());
 	const toRecipients = (parsedEmail.to || []).map((t) => t.address?.toLowerCase()).filter(Boolean) as string[];
 	const ccRecipients = (parsedEmail.cc || []).map((e) => e.address?.toLowerCase()).filter(Boolean) as string[];
 	const bccRecipients = (parsedEmail.bcc || []).map((e) => e.address?.toLowerCase()).filter(Boolean) as string[];
 
-	// Route on the envelope recipient. The To and Cc headers may list strangers or omit this mailbox.
-	const mailboxId = event.to.toLowerCase();
-	if (allowedAddresses.length > 0 && !allowedAddresses.includes(mailboxId)) { console.log(`Ignoring email: recipient does not match EMAIL_ADDRESSES.`); return; }
-
 	const messageId = crypto.randomUUID();
-	if (!(await env.BUCKET.head(`mailboxes/${mailboxId}.json`))) { console.log(`Ignoring email for ${mailboxId}: mailbox does not exist`); return; }
-
 	const stub = env.MAILBOX.get(env.MAILBOX.idFromName(mailboxId));
 
 	const attachmentData: StoredAttachment[] = [];
@@ -169,6 +193,7 @@ async function receiveEmail(event: { to: string; raw: ReadableStream; rawSize: n
 		method: "POST", headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ mailboxId, emailId: messageId, sender: (parsedEmail.from?.address || "").toLowerCase(), subject: parsedEmail.subject || "", threadId }),
 	})).catch((e) => console.error("Auto-draft trigger failed:", (e as Error).message)));
+	return true;
 }
 
 // Re-exported so the vitest workers pool (whose main module is this file)

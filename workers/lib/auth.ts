@@ -169,14 +169,14 @@ export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 });
 
 /**
- * Guard for endpoints that an API key principal must never reach, currently
- * only the API key management routes. Mount after authMiddleware.
+ * Guard for endpoints that an API key principal must never reach: the API key
+ * management and forward rule routes. Mount after authMiddleware.
  */
 export const requireAccessPrincipal = createMiddleware<AppContext>(async (c, next) => {
 	const principal = c.get("principal");
 	if (principal.kind === "api_key") {
 		return c.json(
-			{ error: { code: "forbidden", message: "API keys cannot manage API keys" } },
+			{ error: { code: "forbidden", message: "API keys cannot use this endpoint" } },
 			403,
 		);
 	}

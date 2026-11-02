@@ -83,7 +83,7 @@ app.all("*", (c) => {
 export default {
 	fetch: app.fetch,
 	async email(
-		event: { to: string; raw: ReadableStream; rawSize: number },
+		event: ForwardableEmailMessage,
 		env: Env,
 		ctx: ExecutionContext,
 	) {

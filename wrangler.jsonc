@@ -28,7 +28,8 @@
 		"CLERK_SIGN_IN_URL": "https://accounts.hei.dev/sign-in",
 		"CANONICAL_HOST": "mail.hei.dev",
 		"DOMAINS": "harbouredgeintelligence.com.au,hei.dev",
-		"EMAIL_ADDRESSES": []
+		"EMAIL_ADDRESSES": [],
+		"EMAIL_ROUTING_ACCOUNT_ID": "a12823016aa16d0a8dd2678b258bd751"
 	},
 	"send_email": [
 		{

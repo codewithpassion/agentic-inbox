@@ -134,6 +134,14 @@ export interface ApiKey {
 	revoked_at: string | null;
 }
 
+export interface ForwardRule {
+	source: string;
+	destination: string;
+	created_at: string;
+	created_by: string | null;
+	destination_status: "verified" | "pending" | "unknown";
+}
+
 export type PrincipalInfo =
 	| { kind: "access"; email: string }
 	| { kind: "api_key"; keyId: string; name: string; mailboxes: string[] | null; keyPrefix: string }
@@ -222,6 +230,12 @@ const api = {
 	) => patch<{ key: ApiKey }>(`/api/v1/api-keys/${id}`, patchBody),
 	revokeApiKey: (id: string) => post<{ key: ApiKey }>(`/api/v1/api-keys/${id}/revoke`),
 	deleteApiKey: (id: string) => del<void>(`/api/v1/api-keys/${id}`),
+
+	// Forward rules
+	getForwardRules: () => get<{ rules: ForwardRule[] }>("/api/v1/forwarding"),
+	createForwardRule: (input: { source: string; destination: string }) =>
+		post<{ rule: ForwardRule }>("/api/v1/forwarding", input),
+	deleteForwardRule: (source: string) => del<void>(`/api/v1/forwarding/${encodeURIComponent(source)}`),
 };
 
 export default api;

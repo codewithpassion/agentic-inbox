@@ -26,6 +26,7 @@ describe("GET /api/v1/openapi.json", () => {
 			"/api/v1/mailboxes/{mailboxId}/search",
 			"/api/v1/mailboxes/{mailboxId}/emails/{emailId}/attachments/{attachmentId}",
 			"/api/v1/api-keys",
+			"/api/v1/forwarding",
 			"/api/v1/me",
 		]) {
 			expect(paths).toContain(path);

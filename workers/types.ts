@@ -8,4 +8,6 @@ export interface Env extends Cloudflare.Env {
 	CLERK_JWT_KEY?: string;
 	/** Comma-separated: full addresses, or `@domain` for a whole domain. */
 	ALLOWED_EMAILS: string;
+	/** Optional at runtime. Lets forward rules register destinations and show whether they're verified. */
+	EMAIL_ROUTING_API_TOKEN: string;
 }

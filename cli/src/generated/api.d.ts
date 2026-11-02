@@ -74,6 +74,41 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/api/v1/forwarding": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** @description List forward rules with the verification status of each destination. */
+		get: operations["getApiV1Forwarding"];
+		put?: never;
+		/** @description Forward mail for an address on this deployment's domains to an outside address. If the address also has a mailbox, mail is stored and forwarded. New destinations are registered with Cloudflare, which must verify them before mail is delivered. */
+		post: operations["postApiV1Forwarding"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/api/v1/forwarding/{source}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		post?: never;
+		/** @description Delete a forward rule. The destination stays registered on the Cloudflare account. */
+		delete: operations["deleteApiV1ForwardingBySource"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/api/v1/config": {
 		parameters: {
 			query?: never;
@@ -691,6 +726,177 @@ export interface operations {
 				};
 			};
 			/** @description Key not found */
+			404: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+		};
+	};
+	getApiV1Forwarding: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Rules */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						rules: {
+							source: string;
+							destination: string;
+							created_at: string;
+							created_by: string | null;
+							/** @enum {string} */
+							destination_status: "verified" | "pending" | "unknown";
+						}[];
+					};
+				};
+			};
+			/** @description API keys cannot manage forward rules */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+		};
+	};
+	postApiV1Forwarding: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: {
+			content: {
+				"application/json": {
+					/** Format: email */
+					source: string;
+					/** Format: email */
+					destination: string;
+				};
+			};
+		};
+		responses: {
+			/** @description Created rule */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						rule: {
+							source: string;
+							destination: string;
+							created_at: string;
+							created_by: string | null;
+							/** @enum {string} */
+							destination_status: "verified" | "pending" | "unknown";
+						};
+					};
+				};
+			};
+			/** @description Invalid addresses */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+			/** @description API keys cannot manage forward rules */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+			/** @description Rule already exists */
+			409: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+		};
+	};
+	deleteApiV1ForwardingBySource: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				source: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Deleted */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description API keys cannot manage forward rules */
+			403: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": {
+						error: {
+							code: string;
+							message: string;
+						};
+					};
+				};
+			};
+			/** @description Not found */
 			404: {
 				headers: {
 					[name: string]: unknown;

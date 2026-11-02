@@ -33,6 +33,37 @@ https://github.com/cloudflare/agentic-inbox/issues/4#issuecomment-4269118513
 1. If you see `Clerk must be configured in production`, a Clerk setting is missing. The Worker refuses to run without one so your inbox is not exposed to anyone on the internet.
 2. If you see `This account is not allowed to use this inbox`, the signed-in email is not on `ALLOWED_EMAILS`, or the session token has no `email` claim.
 
+## Forwarding
+
+Forward rules send mail for an address on your domains to another inbox, for example `you@yourdomain.com` to your personal Gmail. Manage them at `/settings/forwarding`, which is linked from a mailbox's settings. Only signed-in people can manage rules. API keys and MCP clients get a 403.
+
+- The address needs no mailbox. If it has one, the mailbox keeps a copy.
+- The address must reach this Worker through an Email Routing rule or the catch-all. A more specific rule in the Cloudflare dashboard wins, and this Worker never sees that mail.
+- Cloudflare only delivers to destinations verified on your account.
+
+To let the app register new destinations and show their status, it needs a Cloudflare API token. Without one, verify destinations in the Cloudflare dashboard, and the page shows their status as "Check in Cloudflare".
+
+The token is account-owned and has one permission, `Email Routing Addresses Write` (shown as "Edit" in the dashboard). It covers listing and adding destinations, and nothing else. Create it with the `cf` CLI:
+
+```bash
+export CLOUDFLARE_ACCOUNT_ID=<your-account-id>
+
+# e4589eb0... is the Email Routing Addresses Write permission group
+cf accounts tokens create \
+  --name "agentic-inbox email routing addresses" \
+  --policies '[{"effect":"allow","resources":{"com.cloudflare.api.account.<your-account-id>":"*"},"permission_groups":[{"id":"e4589eb09e63436686cd64252a3aebeb"}]}]'
+```
+
+The response shows the token value once. Put it in your local `.env` as `EMAIL_ROUTING_API_TOKEN`, and push it to the Worker:
+
+```bash
+wrangler secret put EMAIL_ROUTING_API_TOKEN
+```
+
+Don't name it `CLOUDFLARE_API_TOKEN`. Wrangler reads that name from `.env` for its own login, and this token can't deploy.
+
+Set `EMAIL_ROUTING_ACCOUNT_ID` under `vars` in `wrangler.jsonc`.
+
 ## API access
 
 Scripts and agents can call the REST API with an API key instead of a browser session. The key authenticates the REST surface at `/api/v1/*` and the MCP server at `/mcp`. The AI agent WebSocket (`/agents/*`) stays browser-only.
