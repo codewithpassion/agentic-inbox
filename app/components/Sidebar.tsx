@@ -259,6 +259,12 @@ export default function Sidebar() {
 					</form>
 				</Dialog>
 			</Dialog.Root>
+
+			<form method="post" action="/auth/sign-out" className="mt-auto p-3">
+				<Button type="submit" variant="ghost" size="sm">
+					Sign out
+				</Button>
+			</form>
 		</aside>
 	);
 }

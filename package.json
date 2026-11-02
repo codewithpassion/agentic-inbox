@@ -29,6 +29,8 @@
     "typecheck": "npm run cf-typegen && react-router typegen && tsc -b"
   },
   "dependencies": {
+    "@clerk/backend": "^3.26.5",
+    "@clerk/react": "^6.18.4",
     "@cloudflare/ai-chat": "^0.1.8",
     "@cloudflare/kumo": "^1.13.0",
     "@hono/zod-validator": "^0.4.3",

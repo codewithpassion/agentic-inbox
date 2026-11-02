@@ -9,21 +9,20 @@
  *  1. `Authorization: Bearer aik_...`: hashed and verified against the
  *     ApiKeyStore Durable Object. Runs in dev too so the CLI can be tested
  *     against localhost.
- *  2. The Cloudflare Access JWT from the `cf-access-jwt-assertion` header,
- *     falling back to the `CF_Authorization` cookie. The cookie fallback
- *     keeps the browser working once a path-scoped Access Bypass policy
- *     stops injecting the header on /api/v1/*.
+ *  2. A Clerk session (the `__session` cookie, or a session token in the
+ *     Authorization header) whose email is on ALLOWED_EMAILS.
  *  3. In local development, an unauthenticated "dev" principal.
  *
  * Authorization rules layered on top of this middleware live where they are
  * enforced (e.g. API-key management routes, mailbox scoping).
  */
 import { createMiddleware } from "hono/factory";
-import { createRemoteJWKSet, jwtVerify } from "jose";
 import { hashApiKey } from "../apiKeys/store";
 import type { Env } from "../types";
+import { authenticateClerk, isClerkConfigured, isEmailAllowed, signInRedirectUrl } from "./clerk";
 
 export type Principal =
+	/** A signed-in person. The name predates Clerk and is part of the CLI and OpenAPI contract. */
 	| { kind: "access"; email: string }
 	| {
 			kind: "api_key";
@@ -40,29 +39,19 @@ export type AppContext = {
 	Variables: { principal: Principal };
 };
 
-export type AuthFailure = "invalid_key" | "invalid_access" | "missing" | "misconfigured";
+export type AuthFailure = "invalid_key" | "not_allowed" | "missing" | "misconfigured";
 
 export type AuthResult =
 	| { ok: true; principal: Principal }
+	| { ok: false; reason: "redirect"; response: Response }
 	| { ok: false; reason: AuthFailure };
 
-const AUTH_ERRORS: Record<AuthFailure, { message: string; status: number }> = {
+const AUTH_ERRORS: Record<AuthFailure, { message: string; status: 401 | 403 | 500 }> = {
 	invalid_key: { message: "Invalid or expired API key", status: 401 },
-	invalid_access: { message: "Invalid or expired Access token", status: 401 },
-	missing: { message: "Missing required CF Access JWT", status: 401 },
+	not_allowed: { message: "This account is not allowed to use this inbox", status: 403 },
+	missing: { message: "Sign-in required", status: 401 },
 	misconfigured: {
-		message: "Cloudflare Access must be configured in production. Set POLICY_AUD and TEAM_DOMAIN.",
-		status: 500,
-	},
-};
-
-/** Messages kept identical to the pre-API-key middleware for the SPA paths. */
-const ACCESS_TEXT_ERRORS: Record<AuthFailure, { message: string; status: number }> = {
-	invalid_key: { message: "Invalid or expired API key", status: 403 },
-	invalid_access: { message: "Invalid or expired Access token", status: 403 },
-	missing: { message: "Missing required CF Access JWT", status: 403 },
-	misconfigured: {
-		message: "Cloudflare Access must be configured in production. Set POLICY_AUD and TEAM_DOMAIN.",
+		message: "Clerk must be configured in production. Set CLERK_PUBLISHABLE_KEY, CLERK_SECRET_KEY and CLERK_SIGN_IN_URL.",
 		status: 500,
 	},
 };
@@ -71,42 +60,18 @@ function isDev(): boolean {
 	return import.meta.env.DEV === true;
 }
 
-function getAccessUrls(teamDomain: string) {
-	const certsPath = "/cdn-cgi/access/certs";
-	const teamUrl = new URL(teamDomain);
-	const issuer = teamUrl.origin;
-	const certsUrl = teamUrl.pathname.endsWith(certsPath)
-		? teamUrl
-		: new URL(certsPath, issuer);
-
-	return { issuer, certsUrl };
-}
-
-function readCookie(cookieHeader: string, name: string): string | null {
-	for (const part of cookieHeader.split(";")) {
-		const [key, ...rest] = part.trim().split("=");
-		if (key === name) return rest.join("=");
-	}
-	return null;
-}
-
-function getAccessJwt(request: Request): string | null {
+/** Paths that machines call: never redirected to a sign-in page or another host. */
+function isMachinePath(pathname: string): boolean {
 	return (
-		request.headers.get("cf-access-jwt-assertion") ??
-		readCookie(request.headers.get("Cookie") ?? "", "CF_Authorization")
+		pathname.startsWith("/api/") ||
+		pathname.startsWith("/agents/") ||
+		pathname === "/mcp" ||
+		pathname.startsWith("/mcp/")
 	);
 }
 
-async function verifyAccessJwt(request: Request, env: Env): Promise<string> {
-	const token = getAccessJwt(request);
-	if (!token) throw new Error("missing token");
-	const { issuer, certsUrl } = getAccessUrls(env.TEAM_DOMAIN);
-	const JWKS = createRemoteJWKSet(certsUrl);
-	const { payload } = await jwtVerify(token, JWKS, {
-		issuer,
-		audience: env.POLICY_AUD,
-	});
-	return typeof payload.email === "string" ? payload.email : "";
+function isApiKeyRequest(request: Request): boolean {
+	return request.headers.get("Authorization")?.startsWith("Bearer aik_") === true;
 }
 
 /**
@@ -118,11 +83,10 @@ export async function resolvePrincipal(
 	env: Env,
 	options?: { isDev?: boolean },
 ): Promise<AuthResult> {
-	// 1. API key. The aik_ prefix lets us skip Access-JWT handling entirely.
-	const authorization = request.headers.get("Authorization");
-	if (authorization?.startsWith(`Bearer aik_`)) {
+	// 1. API key. The aik_ prefix lets us skip Clerk entirely.
+	if (isApiKeyRequest(request)) {
 		const stub = env.API_KEYS.get(env.API_KEYS.idFromName("global"));
-		const key = authorization.slice("Bearer ".length);
+		const key = (request.headers.get("Authorization") ?? "").slice("Bearer ".length);
 		const record = await stub.verify(await hashApiKey(key));
 		if (!record) return { ok: false, reason: "invalid_key" };
 		return {
@@ -137,30 +101,34 @@ export async function resolvePrincipal(
 		};
 	}
 
-	// 2. Cloudflare Access JWT, header first, then the CF_Authorization cookie.
-	const accessJwt = getAccessJwt(request);
-	if (accessJwt) {
-		// Fail closed in production if Access is not configured.
-		if (!env.POLICY_AUD || !env.TEAM_DOMAIN) {
-			return { ok: false, reason: "misconfigured" };
-		}
-		try {
-			const email = await verifyAccessJwt(request, env);
-			return { ok: true, principal: { kind: "access", email } };
-		} catch {
-			return { ok: false, reason: "invalid_access" };
+	const dev = options?.isDev ?? isDev();
+
+	// 2. Clerk session.
+	if (isClerkConfigured(env)) {
+		const clerk = await authenticateClerk(request, env);
+		if (clerk.status === "redirect") return { ok: false, reason: "redirect", response: clerk.response };
+		if (clerk.status === "signed-in") {
+			if (!isEmailAllowed(clerk.email, env.ALLOWED_EMAILS)) return { ok: false, reason: "not_allowed" };
+			return { ok: true, principal: { kind: "access", email: clerk.email } };
 		}
 	}
 
 	// 3. Development bypass: every route is open on localhost without a key.
-	if (options?.isDev ?? isDev()) {
-		return { ok: true, principal: { kind: "dev" } };
-	}
+	if (dev) return { ok: true, principal: { kind: "dev" } };
 
-	if (!env.POLICY_AUD || !env.TEAM_DOMAIN) {
-		return { ok: false, reason: "misconfigured" };
-	}
-	return { ok: false, reason: "missing" };
+	// Fail closed in production if Clerk is not configured.
+	return { ok: false, reason: isClerkConfigured(env) ? "missing" : "misconfigured" };
+}
+
+/** The page a signed-in person sees when their email is not on ALLOWED_EMAILS. */
+function notAllowedPage(): Response {
+	return new Response(
+		`<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Not allowed</title></head><body>
+<p>${AUTH_ERRORS.not_allowed.message}.</p>
+<form method="post" action="/auth/sign-out"><button type="submit">Sign out</button></form>
+</body></html>`,
+		{ status: 403, headers: { "Content-Type": "text/html; charset=utf-8" } },
+	);
 }
 
 /**
@@ -170,15 +138,22 @@ export async function resolvePrincipal(
 export const authMiddleware = createMiddleware<AppContext>(async (c, next) => {
 	const result = await resolvePrincipal(c.req.raw, c.env);
 	if (!result.ok) {
-		if (new URL(c.req.raw.url).pathname.startsWith("/api/")) {
-			const { message, status } = AUTH_ERRORS[result.reason];
-			return c.json({ error: { code: "unauthorized", message } }, status as 401 | 500);
+		if (result.reason === "redirect") return result.response;
+		const url = new URL(c.req.raw.url);
+		const { message, status } = AUTH_ERRORS[result.reason];
+		if (url.pathname.startsWith("/api/")) {
+			return c.json({ error: { code: "unauthorized", message } }, status);
 		}
-		const { message, status } = ACCESS_TEXT_ERRORS[result.reason];
-		return c.text(message, status as 403 | 500);
+		if (!isMachinePath(url.pathname)) {
+			if (result.reason === "missing" && c.req.method === "GET") {
+				return c.redirect(signInRedirectUrl(c.env, url.toString()), 302);
+			}
+			if (result.reason === "not_allowed") return notAllowedPage();
+		}
+		return c.text(message, status);
 	}
 
-	// The AI agent WebSocket is not part of the public API: Access identities only.
+	// The AI agent WebSocket is not part of the public API: signed-in people only.
 	if (
 		result.principal.kind === "api_key" &&
 		new URL(c.req.raw.url).pathname.startsWith("/agents/")
@@ -206,4 +181,22 @@ export const requireAccessPrincipal = createMiddleware<AppContext>(async (c, nex
 		);
 	}
 	return next();
+});
+
+/**
+ * Where to send a browser that is on a host other than `canonicalHost`, where
+ * the Clerk session lives. Null for API keys, the REST API and MCP, which keep
+ * working on every host.
+ */
+export function canonicalRedirectUrl(request: Request, canonicalHost: string): string | null {
+	const url = new URL(request.url);
+	if (url.hostname === canonicalHost) return null;
+	if (isMachinePath(url.pathname) || isApiKeyRequest(request)) return null;
+	url.hostname = canonicalHost;
+	return url.toString();
+}
+
+export const canonicalHostMiddleware = createMiddleware<AppContext>(async (c, next) => {
+	const target = isDev() ? null : canonicalRedirectUrl(c.req.raw, c.env.CANONICAL_HOST);
+	return target ? c.redirect(target, 301) : next();
 });

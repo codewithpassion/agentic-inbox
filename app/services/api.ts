@@ -30,6 +30,16 @@ function readErrorMessage(body: Record<string, unknown>, status: number): string
 	return `Request failed: ${status}`;
 }
 
+/**
+ * A fresh Clerk session token. The cookie can lag behind in a background tab,
+ * so API calls carry the token themselves. Null in local dev, where Clerk is not loaded.
+ */
+async function sessionTokenHeader(): Promise<Record<string, string>> {
+	const clerk = (window as { Clerk?: { session?: { getToken(): Promise<string | null> } | null } }).Clerk;
+	const token = await clerk?.session?.getToken();
+	return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function request<T>(
 	url: string,
 	options: RequestInit = {},
@@ -48,6 +58,7 @@ async function request<T>(
 			signal,
 			headers: {
 				"Content-Type": "application/json",
+				...(await sessionTokenHeader()),
 				...(options.headers as Record<string, string>),
 			},
 		});

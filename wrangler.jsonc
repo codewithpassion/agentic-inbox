@@ -6,6 +6,11 @@
 	"main": "./workers/app.ts",
 	"routes": [
 		{
+			"pattern": "mail.hei.dev",
+			"custom_domain": true
+		},
+		// Browsers redirect to CANONICAL_HOST. API keys, the REST API and MCP keep working here.
+		{
 			"pattern": "mail.harbouredgeintelligence.com.au",
 			"custom_domain": true
 		}
@@ -17,10 +22,12 @@
 		"nodejs_compat"
 	],
 	"vars": {
-		// Production deploys must also define POLICY_AUD and TEAM_DOMAIN.
-		// TEAM_DOMAIN may be the base Access URL or the full /cdn-cgi/access/certs URL.
-		// The worker now fails closed outside local development if Access is not configured.
-		"DOMAINS": "harbouredgeintelligence.com.au",
+		// Production deploys must also set the CLERK_SECRET_KEY and ALLOWED_EMAILS secrets.
+		// The worker fails closed outside local development if Clerk is not configured.
+		"CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuaGVpLmRldiQ",
+		"CLERK_SIGN_IN_URL": "https://accounts.hei.dev/sign-in",
+		"CANONICAL_HOST": "mail.hei.dev",
+		"DOMAINS": "harbouredgeintelligence.com.au,hei.dev",
 		"EMAIL_ADDRESSES": []
 	},
 	"send_email": [

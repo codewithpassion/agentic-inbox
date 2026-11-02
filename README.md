@@ -23,34 +23,19 @@ https://github.com/cloudflare/agentic-inbox/issues/4#issuecomment-4269118513
 
      [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/agentic-inbox)
 
-2. **Configure Cloudflare Access** -- Enable [one-click Cloudflare Access](https://developers.cloudflare.com/changelog/post/2025-10-03-one-click-access-for-workers/) on your Worker under Settings > Domains & Routes. The modal will show your `POLICY_AUD` and `TEAM_DOMAIN` values. `TEAM_DOMAIN` can be either your Access team URL or the full `.../cdn-cgi/access/certs` URL. **You must set these as secrets for your Worker.**
+2. **Configure Clerk** -- Create a Clerk application with a production instance on a domain that contains this Worker's hostname, because a Clerk session only reaches subdomains of that domain. Add the session token claim `{"email": "{{user.primary_email_address}}"}` under Sessions. Set `CLERK_PUBLISHABLE_KEY`, `CLERK_SIGN_IN_URL` (the Account Portal sign-in page) and `CANONICAL_HOST` in `wrangler.jsonc`, then set the `CLERK_SECRET_KEY` and `ALLOWED_EMAILS` Worker secrets. `ALLOWED_EMAILS` is comma-separated: full addresses, or `@domain` for a whole domain.
 3. **Set up Email Routing** -- In the Cloudflare dashboard, go to your domain > Email Routing and create a catch-all rule that forwards to this Worker
 4. **Enable Email Service** -- The worker needs the `send_email` binding to send outbound emails. See [Email Service docs](https://developers.cloudflare.com/email-routing/email-workers/send-email-workers/)
 5. **Create a mailbox** -- Visit your deployed app and create a mailbox for any address on your domain (e.g. `hello@example.com`)
 
-### Troubleshooting Access
+### Troubleshooting sign-in
 
-1. If you see `Invalid or expired Access token`, that usually means `POLICY_AUD` or `TEAM_DOMAIN` secrets are incorrect.
-   * Resolution: [turn Access off and back on for the Worker to get the Access modal again](https://developers.cloudflare.com/changelog/post/2025-10-03-one-click-access-for-workers/), then reset your Worker secrets to the latest `POLICY_AUD` and `TEAM_DOMAIN` values shown there.
-2. If you see `Cloudflare Access must be configured in production`, this application is intentionally enforcing Cloudflare Access so your inbox is not exposed to anyone on the internet.
-   * Resolution: enable Access using [one-click Cloudflare Access for Workers](https://developers.cloudflare.com/changelog/post/2025-10-03-one-click-access-for-workers/), then set the `POLICY_AUD` and `TEAM_DOMAIN` Worker secrets from the modal values.
+1. If you see `Clerk must be configured in production`, a Clerk setting is missing. The Worker refuses to run without one so your inbox is not exposed to anyone on the internet.
+2. If you see `This account is not allowed to use this inbox`, the signed-in email is not on `ALLOWED_EMAILS`, or the session token has no `email` claim.
 
 ## API access
 
 Scripts and agents can call the REST API with an API key instead of a browser session. The key authenticates the REST surface at `/api/v1/*` and the MCP server at `/mcp`. The AI agent WebSocket (`/agents/*`) stays browser-only.
-
-### One-time Cloudflare Access setup
-
-Access runs at Cloudflare's edge, before the Worker. A request that carries only an API key is therefore blocked at the edge until you add a bypass for the API paths. Do this once in the Cloudflare dashboard:
-
-1. Go to **Zero Trust > Access > Applications > Add an application > Self-hosted**.
-2. For the application domain, enter your Worker hostname followed by `/api/v1/*` (for example `mail.example.com/api/v1/*`). Repeat with a second application for `/mcp*` if you want key-authenticated MCP clients.
-3. Add a single policy with action **Bypass** that includes **Everyone**.
-4. Keep the application's default cookie settings (Cookie Path Attribute off) so the browser session keeps working.
-
-Cloudflare matches the most specific application, so these path rules win over the Worker-level Access application for those paths. The Worker then checks API keys itself. Browser users are unaffected: the Worker verifies the `CF_Authorization` cookie when Access stops injecting the JWT header on those paths.
-
-Order matters: deploy this Worker version (which verifies the cookie) before creating the bypass, or browser sessions on those paths will break until it is deployed. On a fresh deploy this is automatic.
 
 ### Creating and using a key
 
@@ -68,7 +53,7 @@ The machine-readable contract lives at `GET /api/v1/openapi.json` (OpenAPI 3.1).
 
 ### MCP with an API key
 
-Point an MCP client at `https://mail.example.com/mcp` with the header `Authorization: Bearer aik_...`. Access service tokens keep working as before.
+Point an MCP client at `https://mail.example.com/mcp` with the header `Authorization: Bearer aik_...`.
 
 ### The inbox CLI
 
@@ -124,7 +109,7 @@ The MCP server and the agent run an AI pass (`verifyDraft`) over outgoing bodies
 - **Frontend:** React 19, React Router v7, Tailwind CSS, Zustand, TipTap, `@cloudflare/kumo`
 - **Backend:** Hono, Cloudflare Workers, Durable Objects (SQLite), R2, Email Routing
 - **AI Agent:** Cloudflare Agents SDK (`AIChatAgent`), AI SDK v6, Workers AI (`@cf/moonshotai/kimi-k2.5`), `react-markdown` + `remark-gfm`
-- **Auth:** Cloudflare Access JWT validation (required outside local development)
+- **Auth:** Clerk session with an email allowlist (required outside local development), or an API key
 
 ## Getting Started
 
@@ -150,9 +135,9 @@ npm run deploy
 - [Email Routing](https://developers.cloudflare.com/email-routing/) enabled for receiving
 - [Email Service](https://developers.cloudflare.com/email-service/) enabled for sending
 - [Workers AI](https://developers.cloudflare.com/workers-ai/) enabled (for the agent)
-- [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) configured for deployed/shared environments (required in production)
+- [Clerk](https://clerk.com/docs) configured for deployed/shared environments (required in production)
 
-Any user who passes the shared Cloudflare Access policy can access all mailboxes in this app by design. This includes the MCP server at `/mcp` -- external AI tools (Claude Code, Cursor, etc.) connected via MCP can operate on any mailbox by passing a `mailboxId` parameter. There is no per-mailbox authorization; the Cloudflare Access policy is the single trust boundary.
+Anyone on `ALLOWED_EMAILS` can access all mailboxes in this app by design. This includes the MCP server at `/mcp` -- external AI tools (Claude Code, Cursor, etc.) connected via MCP can operate on any mailbox by passing a `mailboxId` parameter. There is no per-mailbox authorization; the Cloudflare Access policy is the single trust boundary.
 
 ## Architecture
 

@@ -7,7 +7,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
 	plugins: [
-		cloudflareTest(async (ctx) => ({
+		cloudflareTest(async () => ({
 			// Test the API sub-app exported from workers/index.ts, not workers/app.ts:
 			// the entry imports virtual:react-router/server-build, which this pool
 			// cannot resolve.
@@ -18,9 +18,6 @@ export default defineConfig({
 				bindings: {
 					DOMAINS: "mail.example.com",
 					EMAIL_ADDRESSES: [],
-					// Access JWT test setup from vitest.global-setup.ts
-					TEST_JWKS_ORIGIN: ctx.inject("jwksOrigin"),
-					TEST_PRIVATE_JWK: ctx.inject("privateJwk"),
 				},
 				r2Buckets: ["BUCKET"],
 				durableObjects: {
@@ -33,7 +30,6 @@ export default defineConfig({
 		})),
 	],
 	test: {
-		globalSetup: ["./vitest.global-setup.ts"],
 		include: ["workers/tests/**/*.test.ts"],
 	},
 });

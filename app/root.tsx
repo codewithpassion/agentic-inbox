@@ -2,6 +2,7 @@
 // Licensed under the Apache 2.0 license found in the LICENSE file or at:
 //     https://opensource.org/licenses/Apache-2.0
 
+import { ClerkProvider } from "@clerk/react";
 import {
 	Button,
 	Empty,
@@ -16,11 +17,13 @@ import { forwardRef, useState } from "react";
 import {
 	isRouteErrorResponse,
 	Links,
+	type LoaderFunctionArgs,
 	Meta,
 	Outlet,
 	Link as RouterLink,
 	Scripts,
 	ScrollRestoration,
+	useLoaderData,
 } from "react-router";
 import { ApiError } from "~/services/api";
 import "./index.css";
@@ -75,6 +78,11 @@ const KumoLink = forwardRef<
 	return <a href={href} ref={ref} {...props} />;
 });
 
+/** Clerk's publishable key is public. It is absent in local dev, where the worker uses the dev principal. */
+export function loader({ context }: LoaderFunctionArgs) {
+	return { clerkPublishableKey: context.cloudflare.env.CLERK_PUBLISHABLE_KEY || null };
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en">
@@ -113,7 +121,8 @@ export default function App() {
 	// Use useState to ensure each SSR request gets a fresh client while the
 	// browser reuses the same singleton across navigations.
 	const [queryClient] = useState(getQueryClient);
-	return (
+	const { clerkPublishableKey } = useLoaderData<typeof loader>();
+	const app = (
 		<QueryClientProvider client={queryClient}>
 			<LinkProvider component={KumoLink}>
 				<TooltipProvider>
@@ -123,6 +132,12 @@ export default function App() {
 				</TooltipProvider>
 			</LinkProvider>
 		</QueryClientProvider>
+	);
+	// Clerk keeps the short-lived session cookie fresh while the app is open.
+	return clerkPublishableKey ? (
+		<ClerkProvider publishableKey={clerkPublishableKey}>{app}</ClerkProvider>
+	) : (
+		app
 	);
 }
 

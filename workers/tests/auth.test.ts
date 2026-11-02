@@ -3,19 +3,41 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 import { env } from "cloudflare:test";
-import { SignJWT, generateKeyPair, importJWK } from "jose";
+import { SignJWT, exportSPKI, generateKeyPair } from "jose";
 import { beforeAll, describe, expect, it } from "vitest";
 import { generateApiKey, hashApiKey } from "../apiKeys/store";
-import { resolvePrincipal } from "../lib/auth";
+import { canonicalRedirectUrl, resolvePrincipal } from "../lib/auth";
 import type { Env } from "../types";
 import { fetchApi, fetchThroughAuthGate, getApiKeyStore } from "./helpers";
 
-const bindings = env as unknown as Record<string, string>;
-const TEAM_DOMAIN = bindings.TEST_JWKS_ORIGIN;
-const POLICY_AUD = "test-audience";
+const ISSUER = "https://clerk.example.com";
+const ORIGIN = "https://mail.example.com";
+const { privateKey, publicKey } = await generateKeyPair("RS256", { extractable: true });
 
-/** Env with Access configured, as it looks in production. */
-const prodEnv = { ...env, POLICY_AUD, TEAM_DOMAIN } as unknown as Env;
+/** Env with Clerk configured, as it looks in production. The JWT key avoids a JWKS fetch. */
+const prodEnv = {
+	...env,
+	CLERK_PUBLISHABLE_KEY: `pk_live_${btoa("clerk.example.com$")}`,
+	CLERK_SECRET_KEY: "sk_live_test",
+	CLERK_SIGN_IN_URL: "https://accounts.example.com/sign-in",
+	CLERK_JWT_KEY: await exportSPKI(publicKey),
+	ALLOWED_EMAILS: "human@example.com,@team.example.com",
+} as unknown as Env;
+
+function sessionToken(email: string | null, azp = ORIGIN, key: CryptoKey = privateKey) {
+	return new SignJWT({ ...(email ? { email } : {}), azp, sid: "sess_test" })
+		.setProtectedHeader({ alg: "RS256", kid: "test-key" })
+		.setIssuer(ISSUER)
+		.setSubject("user_test")
+		.setIssuedAt()
+		.setNotBefore("-5s")
+		.setExpirationTime("1m")
+		.sign(key);
+}
+
+function sessionRequest(token: string) {
+	return new Request(`${ORIGIN}/api/v1/config`, { headers: { Authorization: `Bearer ${token}` } });
+}
 
 const getStore = getApiKeyStore;
 
@@ -79,7 +101,7 @@ describe("resolvePrincipal: dev and misconfigured branches", () => {
 		expect(result).toEqual({ ok: true, principal: { kind: "dev" } });
 	});
 
-	it("fails closed without Access config in production", async () => {
+	it("fails closed without Clerk config in production", async () => {
 		const result = await resolvePrincipal(new Request("https://x/"), env as unknown as Env, {
 			isDev: false,
 		});
@@ -87,85 +109,85 @@ describe("resolvePrincipal: dev and misconfigured branches", () => {
 	});
 });
 
-describe("resolvePrincipal: Access JWT branch", () => {
-	let privateKey: CryptoKey;
-
-	beforeAll(async () => {
-		privateKey = (await importJWK(JSON.parse(bindings.TEST_PRIVATE_JWK), "RS256")) as CryptoKey;
-	});
-
-	async function signedToken() {
-		return new SignJWT({ email: "human@example.com" })
-			.setProtectedHeader({ alg: "RS256", kid: "test-key" })
-			.setIssuer(TEAM_DOMAIN)
-			.setAudience(POLICY_AUD)
-			.setExpirationTime("5m")
-			.sign(privateKey);
-	}
-
-	it("resolves an Access JWT from the cf-access-jwt-assertion header", async () => {
-		const result = await resolvePrincipal(
-			new Request("https://x/", { headers: { "cf-access-jwt-assertion": await signedToken() } }),
-			prodEnv,
-			{ isDev: false },
-		);
+describe("resolvePrincipal: Clerk session branch", () => {
+	it("resolves an allowed address to a signed-in principal", async () => {
+		const result = await resolvePrincipal(sessionRequest(await sessionToken("human@example.com")), prodEnv, { isDev: false });
 		expect(result).toEqual({ ok: true, principal: { kind: "access", email: "human@example.com" } });
 	});
 
-	it("falls back to the CF_Authorization cookie", async () => {
-		const result = await resolvePrincipal(
-			new Request("https://x/", {
-				headers: { Cookie: `CF_Authorization=${await signedToken()}; other=1` },
-			}),
-			prodEnv,
-			{ isDev: false },
-		);
-		expect(result).toEqual({ ok: true, principal: { kind: "access", email: "human@example.com" } });
+	it("resolves an address on an allowed domain, ignoring case", async () => {
+		const result = await resolvePrincipal(sessionRequest(await sessionToken("Anyone@Team.Example.com")), prodEnv, { isDev: false });
+		expect(result).toEqual({ ok: true, principal: { kind: "access", email: "Anyone@Team.Example.com" } });
 	});
 
-	it("rejects a JWT signed by the wrong key", async () => {
+	it("refuses a valid session whose email is not allowed", async () => {
+		const result = await resolvePrincipal(sessionRequest(await sessionToken("stranger@example.com")), prodEnv, { isDev: false });
+		expect(result).toEqual({ ok: false, reason: "not_allowed" });
+	});
+
+	it("refuses a subdomain of an allowed domain and a lookalike address", async () => {
+		for (const email of ["a@sub.team.example.com", "a@team.example.com.evil.test", "human@example.com.evil.test"]) {
+			const result = await resolvePrincipal(sessionRequest(await sessionToken(email)), prodEnv, { isDev: false });
+			expect(result).toEqual({ ok: false, reason: "not_allowed" });
+		}
+	});
+
+	it("refuses a valid session without an email claim", async () => {
+		const result = await resolvePrincipal(sessionRequest(await sessionToken(null)), prodEnv, { isDev: false });
+		expect(result).toEqual({ ok: false, reason: "not_allowed" });
+	});
+
+	it("refuses everyone when the allowlist is empty", async () => {
+		const result = await resolvePrincipal(
+			sessionRequest(await sessionToken("human@example.com")),
+			{ ...prodEnv, ALLOWED_EMAILS: "" } as Env,
+			{ isDev: false },
+		);
+		expect(result).toEqual({ ok: false, reason: "not_allowed" });
+	});
+
+	it("rejects a token signed by the wrong key", async () => {
 		const other = await generateKeyPair("RS256", { extractable: true });
-		const token = await new SignJWT({ email: "attacker@example.com" })
-			.setProtectedHeader({ alg: "RS256", kid: "test-key" })
-			.setIssuer(TEAM_DOMAIN)
-			.setAudience(POLICY_AUD)
-			.setExpirationTime("5m")
-			.sign(other.privateKey);
-		const result = await resolvePrincipal(
-			new Request("https://x/", { headers: { "cf-access-jwt-assertion": token } }),
-			prodEnv,
-			{ isDev: false },
-		);
-		expect(result).toEqual({ ok: false, reason: "invalid_access" });
+		const token = await sessionToken("human@example.com", ORIGIN, other.privateKey);
+		const result = await resolvePrincipal(sessionRequest(token), prodEnv, { isDev: false });
+		expect(result).toEqual({ ok: false, reason: "missing" });
 	});
 
-	it("rejects a JWT with the wrong audience", async () => {
-		const token = await new SignJWT({ email: "human@example.com" })
-			.setProtectedHeader({ alg: "RS256", kid: "test-key" })
-			.setIssuer(TEAM_DOMAIN)
-			.setAudience("other-audience")
-			.setExpirationTime("5m")
-			.sign(privateKey);
-		const result = await resolvePrincipal(
-			new Request("https://x/", { headers: { "cf-access-jwt-assertion": token } }),
-			prodEnv,
-			{ isDev: false },
-		);
-		expect(result).toEqual({ ok: false, reason: "invalid_access" });
+	it("rejects a token minted for another site on the same instance", async () => {
+		const token = await sessionToken("human@example.com", "https://hei.dev");
+		const result = await resolvePrincipal(sessionRequest(token), prodEnv, { isDev: false });
+		expect(result).toEqual({ ok: false, reason: "missing" });
 	});
 
-	it("prefers a valid Access JWT over the dev principal", async () => {
-		const result = await resolvePrincipal(
-			new Request("https://x/", { headers: { "cf-access-jwt-assertion": await signedToken() } }),
-			prodEnv,
-			{ isDev: true },
-		);
+	it("prefers a valid session over the dev principal", async () => {
+		const result = await resolvePrincipal(sessionRequest(await sessionToken("human@example.com")), prodEnv, { isDev: true });
 		expect(result).toEqual({ ok: true, principal: { kind: "access", email: "human@example.com" } });
 	});
 
 	it("reports missing credentials when no token and not dev", async () => {
-		const result = await resolvePrincipal(new Request("https://x/"), prodEnv, { isDev: false });
+		const result = await resolvePrincipal(new Request(`${ORIGIN}/api/v1/config`), prodEnv, { isDev: false });
 		expect(result).toEqual({ ok: false, reason: "missing" });
+	});
+});
+
+describe("canonicalRedirectUrl", () => {
+	const OLD = "https://mail.old.example";
+	const CANONICAL = "mail.example.com";
+
+	it("sends a browser on another host to the same path on the canonical host", () => {
+		expect(canonicalRedirectUrl(new Request(`${OLD}/mailbox/a?x=1`), CANONICAL)).toBe(`https://${CANONICAL}/mailbox/a?x=1`);
+	});
+
+	it("leaves the canonical host alone", () => {
+		expect(canonicalRedirectUrl(new Request(`https://${CANONICAL}/`), CANONICAL)).toBeNull();
+	});
+
+	it("leaves the REST API, MCP, agents and API keys on the old host", () => {
+		for (const path of ["/api/v1/config", "/mcp", "/mcp/x", "/agents/a"]) {
+			expect(canonicalRedirectUrl(new Request(`${OLD}${path}`), CANONICAL)).toBeNull();
+		}
+		const withKey = new Request(`${OLD}/`, { headers: { Authorization: "Bearer aik_x" } });
+		expect(canonicalRedirectUrl(withKey, CANONICAL)).toBeNull();
 	});
 });
 

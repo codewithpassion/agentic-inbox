@@ -7,7 +7,8 @@ import { Hono } from "hono";
 import { createRequestHandler } from "react-router";
 import { app as apiApp, receiveEmail } from "./index";
 import { EmailMCP } from "./mcp";
-import { authMiddleware } from "./lib/auth";
+import { authMiddleware, canonicalHostMiddleware } from "./lib/auth";
+import { authenticateClerk, isClerkConfigured, revokeClerkSession, signInRedirectUrl } from "./lib/clerk";
 import { mcpRequestWithPrincipal } from "./mcp";
 import type { MailboxContext } from "./lib/mailbox";
 import type { Env } from "./types";
@@ -34,9 +35,20 @@ const requestHandler = createRequestHandler(
 // Main app that wraps the API and adds React Router fallback
 const app = new Hono<MailboxContext>();
 
-// Resolves the request principal (API key, Cloudflare Access JWT, or dev
-// bypass) and stores it on the context. See workers/lib/auth.ts for the
-// resolution order and the production failure modes.
+app.use("*", canonicalHostMiddleware);
+
+// Outside the auth middleware: a person whose email is not allowed must still be able to sign out.
+app.post("/auth/sign-out", async (c) => {
+	if (c.req.header("Sec-Fetch-Site") !== "same-origin") return c.text("Forbidden", 403);
+	if (!isClerkConfigured(c.env)) return c.redirect("/", 303);
+	const clerk = await authenticateClerk(c.req.raw, c.env);
+	if (clerk.status === "signed-in") await revokeClerkSession(clerk.sessionId, c.env);
+	return c.redirect(signInRedirectUrl(c.env, new URL(c.req.url).origin), 303);
+});
+
+// Resolves the request principal (API key, Clerk session, or dev bypass) and
+// stores it on the context. See workers/lib/auth.ts for the resolution order
+// and the production failure modes.
 app.use("*", authMiddleware);
 
 // MCP server endpoint — used by AI coding tools (ProtoAgent, Claude Code, Cursor, etc.)

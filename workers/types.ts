@@ -3,6 +3,9 @@
 //     https://opensource.org/licenses/Apache-2.0
 
 export interface Env extends Cloudflare.Env {
-	POLICY_AUD: string;
-	TEAM_DOMAIN: string;
+	CLERK_SECRET_KEY: string;
+	/** PEM public key that verifies session tokens without a JWKS fetch. Optional. */
+	CLERK_JWT_KEY?: string;
+	/** Comma-separated: full addresses, or `@domain` for a whole domain. */
+	ALLOWED_EMAILS: string;
 }
